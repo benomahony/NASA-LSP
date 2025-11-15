@@ -115,6 +115,10 @@ Identifies direct recursive function calls where a function calls itself.
 
 Detects unbounded `while True` loops that violate the fixed upper bound requirement.
 
+### Rule 4: No functions longer than 60 linre
+
+NASA04: No function longer that 60 lines
+
 ### Rule 5: Assertion Density
 
 **NASA05: Assertion Count**

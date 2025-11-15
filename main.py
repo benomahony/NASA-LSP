@@ -178,6 +178,14 @@ class NasaVisitor(ast.NodeVisitor):
                 "NASA01-B",
             )
 
+        # NASA04: No function longer that 60 lines
+        if node.end_lineno - node.lineno >= 60:
+            self._add_diag(
+                func_name_range,
+                f"Function '{func_name}' longer than 60 lines (NASA04: No function longer than 60 lines)",
+                "NASA04",
+            )
+
         # NASA05: at least 2 assert statements
         assert_count = 0
         for stmt in node.body:
