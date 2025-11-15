@@ -160,7 +160,7 @@ class NasaVisitor(ast.NodeVisitor):
         calls_self = False
         for stmt in node.body:
             if isinstance(stmt, (ast.FunctionDef, ast.ClassDef)):
-                continue  # Skip nested function/class definitions for recursion check of the current function
+                continue
             for sub_node in ast.walk(stmt):
                 if (
                     isinstance(sub_node, ast.Call)
@@ -201,6 +201,7 @@ class NasaVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     # NASA09 — forbid bare except:
+    # TODO: Do we need this? Is it covered by most LSPs?
     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
         assert node
         if node.type is None:
