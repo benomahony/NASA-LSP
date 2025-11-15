@@ -100,7 +100,7 @@ class NasaVisitor(ast.NodeVisitor):
             )
         )
 
-    # NASA01 — restricted subset (forbidden builtins)
+    # NASA01-A — restricted subset (forbidden builtins)
     def visit_Call(self, node: ast.Call) -> None:
         assert node
 
@@ -129,7 +129,7 @@ class NasaVisitor(ast.NodeVisitor):
             self._add_diag(
                 self._range_for_node(target_node),
                 f"Call to forbidden API '{name}' (NASA01: restricted subset)",
-                "NASA01-FORBIDDEN-API",
+                "NASA01-A",
             )
 
         self.generic_visit(node)
@@ -143,20 +143,20 @@ class NasaVisitor(ast.NodeVisitor):
             self._add_diag(
                 range,
                 "Unbounded loop 'while True' (NASA02: loops must be bounded)",
-                "NASA02-UNBOUNDED-WHILE",
+                "NASA02",
             )
 
         self.generic_visit(node)
 
-    # NASA03 — forbid direct recursion
-    # NASA08 — require ≥2 assert statements in every function
+    # NASA01-B — forbid direct recursion
+    # NASA05 — require ≥2 assert statements in every function
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
         func_name = node.name
         assert func_name
         func_name_range = self._range_for_func_name(node)
         assert func_name_range
 
-        # NASA03: direct recursion detection
+        # NASA01-B: direct recursion detection
         calls_self = False
         for stmt in node.body:
             if isinstance(stmt, (ast.FunctionDef, ast.ClassDef)):
@@ -174,11 +174,11 @@ class NasaVisitor(ast.NodeVisitor):
         if calls_self:
             self._add_diag(
                 func_name_range,
-                f"Recursive call to '{func_name}' (NASA03: no recursion)",
-                "NASA03-RECURSION",
+                f"Recursive call to '{func_name}' (NASA01: no recursion)",
+                "NASA01-B",
             )
 
-        # NASA08: at least 2 assert statements
+        # NASA05: at least 2 assert statements
         assert_count = 0
         for stmt in node.body:
             if isinstance(stmt, (ast.FunctionDef, ast.ClassDef)):
@@ -193,25 +193,9 @@ class NasaVisitor(ast.NodeVisitor):
                 (
                     f"Function '{func_name}' has only {assert_count} assert(s); "
                     f"expected at least {2} asserts "
-                    f"(NASA08: use assertions to detect impossible conditions)"
+                    f"(NASA05: use assertions to detect impossible conditions)"
                 ),
-                "NASA08-ASSERT-COUNT",
-            )
-
-        self.generic_visit(node)
-
-    # NASA09 — forbid bare except:
-    # TODO: Do we need this? Is it covered by most LSPs?
-    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
-        assert node
-        if node.type is None:
-            header_range = self._range_for_node(node)
-
-            assert header_range
-            self._add_diag(
-                header_range,
-                "Bare 'except:' (NASA09: handle specific exceptions)",
-                "NASA09-BARE-EXCEPT",
+                "NASA05",
             )
 
         self.generic_visit(node)
