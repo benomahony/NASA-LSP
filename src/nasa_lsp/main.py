@@ -252,6 +252,8 @@ def did_change(ls: LanguageServer, params) -> None:
 
 
 def serve():
+    assert server
+    assert isinstance(server, LanguageServer)
     server.start_io()
 
 
