@@ -5,7 +5,6 @@ import logging
 from typing import List
 
 from lsprotocol import types
-from pygls.cli import start_server
 from pygls.lsp.server import LanguageServer
 from pygls.workspace import TextDocument
 
@@ -252,6 +251,10 @@ def did_change(ls: LanguageServer, params) -> None:
     run_checks(ls, ls.workspace.get_text_document(params.text_document.uri))
 
 
+def serve():
+    server.start_io()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    start_server(server)
+    serve()
