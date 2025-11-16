@@ -1,9 +1,7 @@
 [project]
 name = "nasa-lsp"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "pygls>=2.0.0",
-]
+dependencies = ["pygls>=2.0.0"]
