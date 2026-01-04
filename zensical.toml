@@ -1,0 +1,24 @@
+[project]
+site_name = "NASA LSP"
+site_description = "Language Server Protocol for NASA's Power of 10 safety-critical coding rules"
+site_url = "https://benomahony.github.io/NASA-LSP/"
+
+[theme]
+name = "material"
+palette = "slate"
+
+[[nav]]
+title = "Home"
+path = "index.md"
+
+[[nav]]
+title = "Getting Started"
+path = "getting-started.md"
+
+[[nav]]
+title = "Rules"
+path = "rules.md"
+
+[[nav]]
+title = "Development"
+path = "development.md"
