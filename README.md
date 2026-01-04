@@ -127,55 +127,14 @@ Enforces the strict 60-line limit per function for verifiability and code clarit
 
 Enforces minimum of 2 assert statements per function to detect impossible conditions and verify invariants.
 
-## Complementary Rules Covered by Ruff
+## Complementary Tooling
 
-Some NASA rules overlap with modern Python best practices and are already covered by [Ruff](https://docs.astral.sh/ruff/), an extremely fast Python linter. We recommend using **both tools together** for comprehensive coverage:
-
-### Rules Better Handled by Ruff
-
-**Rule 7 (Check Return Values)** - Use Ruff's:
-- `B018` (useless-expression) - Detects ignored function calls
-- Enable with: `select = ["B018"]`
-
-**Rule 10 (Compiler Warnings / Type Safety)** - Use Ruff's:
-- `ANN` (flake8-annotations) - Enforces type hints on all functions
-- Enable with: `select = ["ANN"]`
-- Also recommended: Use a type checker like Mypy or Pyright
-
-**Rule 8 (Limited Preprocessor / Import Restrictions)** - Partially covered by:
-- Ruff's import-related rules (`I`, `TID`)
-
-### Recommended Ruff Configuration
-
-Add this to your `pyproject.toml` to complement NASA LSP:
+NASA LSP focuses on **safety-critical constraints** unique to verifiable code (no recursion, bounded loops, assertion density). For general Python quality (type hints, unused variables, return values), use [Ruff](https://docs.astral.sh/ruff/) alongside this LSP:
 
 ```toml
 [tool.ruff]
-select = [
-    "ANN",  # flake8-annotations (Rule 10: type safety)
-    "B018", # useless-expression (Rule 7: check return values)
-    "E",    # pycodestyle errors
-    "F",    # pyflakes
-    "I",    # isort (organized imports)
-]
-
-[tool.ruff.lint.flake8-annotations]
-allow-star-arg-any = false
-suppress-none-returning = false
+select = ["ANN", "B018", "E", "F"]  # Type hints, ignored return values, style
 ```
-
-### What Makes NASA LSP Unique
-
-While Ruff handles general Python quality, **NASA LSP enforces safety-critical constraints** that mainstream linters deliberately don't include:
-
-- ✅ **Recursion detection** - Ruff doesn't detect or forbid recursion
-- ✅ **Bounded loop enforcement** - Ruff doesn't restrict `while True` or require loop bounds
-- ✅ **Strict line limits** - Ruff has complexity metrics but not hard 60-line function limits
-- ✅ **Assertion density** - Ruff doesn't enforce minimum assertions per function
-
-**Use NASA LSP when:** Building safety-critical, embedded, or verifiable Python systems
-**Use Ruff when:** General Python quality and best practices
-**Use both when:** Maximum code quality and safety verification
 
 ## Installation
 
