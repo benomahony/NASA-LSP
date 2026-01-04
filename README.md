@@ -92,7 +92,7 @@ styles that have been advanced for safety-critical systems such as the "design b
 
 ## Currently Implemented Rules
 
-This LSP currently detects violations of the following rules adapted for Python:
+This LSP focuses on **safety-critical rules unique to NASA's requirements** that mainstream linters don't enforce. These rules are specifically designed for mission-critical software where code verification and bounded execution are paramount.
 
 ### Rule 1: Simple Control Flow
 
@@ -115,15 +115,67 @@ Identifies direct recursive function calls where a function calls itself.
 
 Detects unbounded `while True` loops that violate the fixed upper bound requirement.
 
-### Rule 4: No functions longer than 60 linre
+### Rule 4: Function Length Limit
 
-NASA04: No function longer that 60 lines
+**NASA04: No Function Longer Than 60 Lines**
+
+Enforces the strict 60-line limit per function for verifiability and code clarity.
 
 ### Rule 5: Assertion Density
 
 **NASA05: Assertion Count**
 
 Enforces minimum of 2 assert statements per function to detect impossible conditions and verify invariants.
+
+## Complementary Rules Covered by Ruff
+
+Some NASA rules overlap with modern Python best practices and are already covered by [Ruff](https://docs.astral.sh/ruff/), an extremely fast Python linter. We recommend using **both tools together** for comprehensive coverage:
+
+### Rules Better Handled by Ruff
+
+**Rule 7 (Check Return Values)** - Use Ruff's:
+- `B018` (useless-expression) - Detects ignored function calls
+- Enable with: `select = ["B018"]`
+
+**Rule 10 (Compiler Warnings / Type Safety)** - Use Ruff's:
+- `ANN` (flake8-annotations) - Enforces type hints on all functions
+- Enable with: `select = ["ANN"]`
+- Also recommended: Use a type checker like Mypy or Pyright
+
+**Rule 8 (Limited Preprocessor / Import Restrictions)** - Partially covered by:
+- Ruff's import-related rules (`I`, `TID`)
+
+### Recommended Ruff Configuration
+
+Add this to your `pyproject.toml` to complement NASA LSP:
+
+```toml
+[tool.ruff]
+select = [
+    "ANN",  # flake8-annotations (Rule 10: type safety)
+    "B018", # useless-expression (Rule 7: check return values)
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort (organized imports)
+]
+
+[tool.ruff.lint.flake8-annotations]
+allow-star-arg-any = false
+suppress-none-returning = false
+```
+
+### What Makes NASA LSP Unique
+
+While Ruff handles general Python quality, **NASA LSP enforces safety-critical constraints** that mainstream linters deliberately don't include:
+
+- ✅ **Recursion detection** - Ruff doesn't detect or forbid recursion
+- ✅ **Bounded loop enforcement** - Ruff doesn't restrict `while True` or require loop bounds
+- ✅ **Strict line limits** - Ruff has complexity metrics but not hard 60-line function limits
+- ✅ **Assertion density** - Ruff doesn't enforce minimum assertions per function
+
+**Use NASA LSP when:** Building safety-critical, embedded, or verifiable Python systems
+**Use Ruff when:** General Python quality and best practices
+**Use both when:** Maximum code quality and safety verification
 
 ## Installation
 
@@ -192,6 +244,7 @@ The LSP runs automatically on Python files and provides inline diagnostics as yo
 - `NASA01-A`: Use of forbidden dynamic API
 - `NASA01-B`: Direct recursive function call
 - `NASA02`: Unbounded while True loop
+- `NASA04`: Function exceeds 60-line limit
 - `NASA05`: Insufficient assertions in function
 
 ## Example Violations
