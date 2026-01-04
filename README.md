@@ -90,9 +90,22 @@ build, test, and analyze. The absence of dynamic memory allocation, stipulated b
 problems related to the allocation and freeing of memory, the use of stray pointers, and so on. The next few rules are fairly broadly accepted as standards for good coding style. Other rules secure some of the benefits of stronger coding
 styles that have been advanced for safety-critical systems such as the "design by contract" discipline.
 
-## Currently Implemented Rules
+## NASA Rule Coverage
 
-This LSP focuses on **safety-critical rules unique to NASA's requirements** that mainstream linters don't enforce. These rules are specifically designed for mission-critical software where code verification and bounded execution are paramount.
+| Rule | Coverage | Implementation |
+|------|----------|----------------|
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-A (forbidden APIs), NASA01-B (no recursion) |
+| **2. Bounded Loops** | ✅ NASA LSP | NASA02 (no `while True`) |
+| **3. No Dynamic Allocation** | ❌ Not implemented | Could detect unbounded `list.append()` in loops |
+| **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
+| **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
+| **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
+| **7. Check Return Values** | ⚠️ Ruff | Use Ruff's `B018` rule |
+| **8. Limited Preprocessor** | ⚠️ Partial | NASA01-A bans `__import__`; use Ruff for imports |
+| **9. Pointer Restrictions** | - N/A | Not applicable to Python |
+| **10. All Warnings Enabled** | ⚠️ Ruff + Mypy | Use Ruff's `ANN` + static type checker |
+
+**Recommended setup:** NASA LSP + Ruff + Mypy for comprehensive coverage.
 
 ### Rule 1: Simple Control Flow
 
@@ -126,23 +139,6 @@ Enforces the strict 60-line limit per function for verifiability and code clarit
 **NASA05: Assertion Count**
 
 Enforces minimum of 2 assert statements per function to detect impossible conditions and verify invariants.
-
-## Coverage of NASA's 10 Rules
-
-| Rule | Coverage | Implementation |
-|------|----------|----------------|
-| **1. Simple Control Flow** | NASA LSP | NASA01-A (forbidden APIs), NASA01-B (no recursion) |
-| **2. Bounded Loops** | NASA LSP | NASA02 (no `while True`) |
-| **3. No Dynamic Allocation** | Not implemented | Could detect unbounded `list.append()` in loops |
-| **4. Function Length ≤60 lines** | NASA LSP | NASA04 |
-| **5. Assertion Density** | NASA LSP | NASA05 (≥2 asserts per function) |
-| **6. Smallest Scope** | Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
-| **7. Check Return Values** | Ruff | Use Ruff's `B018` rule |
-| **8. Limited Preprocessor** | Partial | NASA01-A bans `__import__`; use Ruff for imports |
-| **9. Pointer Restrictions** | N/A | Not applicable to Python |
-| **10. All Warnings Enabled** | Ruff + Mypy | Use Ruff's `ANN` + static type checker |
-
-**Recommended setup:** NASA LSP + Ruff + Mypy for comprehensive coverage.
 
 ## Installation
 
