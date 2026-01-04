@@ -127,14 +127,22 @@ Enforces the strict 60-line limit per function for verifiability and code clarit
 
 Enforces minimum of 2 assert statements per function to detect impossible conditions and verify invariants.
 
-## Complementary Tooling
+## Coverage of NASA's 10 Rules
 
-NASA LSP focuses on **safety-critical constraints** unique to verifiable code (no recursion, bounded loops, assertion density). For general Python quality (type hints, unused variables, return values), use [Ruff](https://docs.astral.sh/ruff/) alongside this LSP:
+| Rule | Coverage | Implementation |
+|------|----------|----------------|
+| **1. Simple Control Flow** | NASA LSP | NASA01-A (forbidden APIs), NASA01-B (no recursion) |
+| **2. Bounded Loops** | NASA LSP | NASA02 (no `while True`) |
+| **3. No Dynamic Allocation** | Not implemented | Could detect unbounded `list.append()` in loops |
+| **4. Function Length ≤60 lines** | NASA LSP | NASA04 |
+| **5. Assertion Density** | NASA LSP | NASA05 (≥2 asserts per function) |
+| **6. Smallest Scope** | Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
+| **7. Check Return Values** | Ruff | Use Ruff's `B018` rule |
+| **8. Limited Preprocessor** | Partial | NASA01-A bans `__import__`; use Ruff for imports |
+| **9. Pointer Restrictions** | N/A | Not applicable to Python |
+| **10. All Warnings Enabled** | Ruff + Mypy | Use Ruff's `ANN` + static type checker |
 
-```toml
-[tool.ruff]
-select = ["ANN", "B018", "E", "F"]  # Type hints, ignored return values, style
-```
+**Recommended setup:** NASA LSP + Ruff + Mypy for comprehensive coverage.
 
 ## Installation
 
