@@ -423,15 +423,11 @@ dev = [
     { name = "bump-my-version" },
     { name = "dead" },
     { name = "mutmut" },
+    { name = "pre-commit" },
     { name = "prek" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "ruff" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pre-commit" },
 ]
 
 [package.metadata]
@@ -440,6 +436,7 @@ requires-dist = [
     { name = "bump-my-version", marker = "extra == 'dev'", specifier = ">=0.31" },
     { name = "dead", marker = "extra == 'dev'", specifier = ">=2.1.0" },
     { name = "mutmut", marker = "extra == 'dev'", specifier = ">=3.2" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=4.5.1" },
     { name = "prek", marker = "extra == 'dev'", specifier = ">=0.2.30" },
     { name = "pygls", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
@@ -448,9 +445,6 @@ requires-dist = [
     { name = "typer", specifier = ">=0.21.1" },
 ]
 provides-extras = ["dev"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "pre-commit", specifier = ">=4.5.1" }]
 
 [[package]]
 name = "nodeenv"

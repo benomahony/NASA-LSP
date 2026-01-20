@@ -1,6 +1,8 @@
 # NASA LSP
 
 [![CI](https://github.com/benomahony/nasa-lsp/actions/workflows/publish.yaml/badge.svg)](https://github.com/benomahony/nasa-lsp/actions/workflows/publish.yaml)
+![Coverage](https://raw.githubusercontent.com/benomahony/nasa-lsp/main/.github/badges/coverage.svg)
+![Mutation Score](https://raw.githubusercontent.com/benomahony/nasa-lsp/main/.github/badges/mutation.svg)
 [![PyPI version](https://badge.fury.io/py/nasa-lsp.svg)](https://badge.fury.io/py/nasa-lsp)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
