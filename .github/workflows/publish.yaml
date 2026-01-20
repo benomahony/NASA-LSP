@@ -1,33 +1,80 @@
-name: Publish to PyPI
+name: CI and Publish
 
 on:
-  release:
-    types: [created]
-  workflow_dispatch:
+  push:
+    branches: [main]
 
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/p/ai-lsp
-    permissions:
-      id-token: write
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
 
-      - name: Install build dependencies
-        run: uv sync
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Lint with ruff
+        run: uv run ruff check .
+
+      - name: Format check with ruff
+        run: uv run ruff format --check .
+
+      - name: Type check with basedpyright
+        run: uv run basedpyright
+
+      - name: Run nasa-lsp on itself
+        run: uv run nasa lint src/ tests/
+
+      - name: Run tests with coverage
+        run: uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-fail-under=90
+
+      - name: Run mutation tests
+        run: uv run mutmut run --no-progress --CI
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/nasa-lsp
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        run: uv sync --all-extras
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        run: uv run bump-my-version bump patch
+
+      - name: Push version bump
+        run: git push --follow-tags
 
       - name: Build package
         run: uv build
 
-      - name: Publish package to PyPI
+      - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

@@ -9,11 +9,11 @@ dependencies = ["pygls>=2.0.0", "typer>=0.21.1"]
 [project.optional-dependencies]
 dev = [
   "basedpyright>=1.29",
+  "bump-my-version>=0.31",
   "mutmut>=3.2",
   "prek>=0.2.30",
   "pytest-cov>=7.0.0",
   "pytest>=8.0",
-  "pytest-cov>=6.0",
   "ruff>=0.11",
 ]
 
@@ -52,3 +52,15 @@ omit = ["src/nasa_lsp/__init__.py"]
 [tool.coverage.report]
 fail_under = 90
 exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "assert False"]
+
+[tool.bumpversion]
+current_version = "0.1.2"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+message = "Bump version: {current_version} → {new_version}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
