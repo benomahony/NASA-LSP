@@ -79,6 +79,31 @@ uv run prek install && uv run prek install --hook-type pre-push
 - `.github/` - CI workflows and badge generation
 - `.pre-commit-config.yaml` - Prek hook configuration
 
+## NASA Power of 10 Rules (Enforced)
+
+This project enforces a subset of NASA's Power of 10 rules for safety-critical software:
+
+### NASA01-A: Forbidden Dynamic APIs
+Flags calls to dynamic APIs that make code difficult to analyze:
+- `eval`, `exec`, `compile`
+- `globals`, `locals`
+- `__import__`
+- `setattr`, `getattr`
+
+### NASA01-B: No Recursion
+Identifies direct recursive function calls where a function calls itself.
+
+### NASA02: Bounded Loops
+Detects unbounded `while True` loops that violate the fixed upper bound requirement.
+
+### NASA04: Function Length Limit
+Enforces strict 60-line limit per function for verifiability and code clarity.
+
+### NASA05: Assertion Density
+Enforces minimum of 2 assert statements per function to detect impossible conditions and verify invariants.
+
+**Important**: When adding new functions, always include at least 2 meaningful assertions. The test_runner.py has assertions checking Python version and subprocess availability as examples.
+
 ## Never Do These
 
 1. Don't exclude files from coverage without asking first
