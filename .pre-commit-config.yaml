@@ -31,3 +31,18 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
+
+      - id: pytest
+        name: pytest
+        entry: uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-fail-under=90
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: mutmut
+        name: mutmut
+        entry: uv run mutmut run --no-progress --CI
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]

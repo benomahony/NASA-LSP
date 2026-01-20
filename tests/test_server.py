@@ -1,0 +1,56 @@
+from __future__ import annotations
+
+from lsprotocol import types
+
+from nasa_lsp.analyzer import Diagnostic, Position, Range
+from nasa_lsp.server import _to_lsp_diagnostic, server
+
+
+def test_to_lsp_diagnostic_basic() -> None:
+    diag = Diagnostic(
+        range=Range(start=Position(line=5, character=10), end=Position(line=5, character=20)),
+        message="Test error",
+        code="TEST01",
+    )
+    result = _to_lsp_diagnostic(diag)
+    assert isinstance(result, types.Diagnostic)
+    assert result.message == "Test error"
+    assert result.code == "TEST01"
+    assert result.source == "NASA"
+    assert result.severity == types.DiagnosticSeverity.Warning
+
+
+def test_to_lsp_diagnostic_range_conversion() -> None:
+    diag = Diagnostic(
+        range=Range(start=Position(line=0, character=0), end=Position(line=10, character=5)),
+        message="Multi-line",
+        code="MULTI",
+    )
+    result = _to_lsp_diagnostic(diag)
+    assert result.range.start.line == 0
+    assert result.range.start.character == 0
+    assert result.range.end.line == 10
+    assert result.range.end.character == 5
+
+
+def test_to_lsp_diagnostic_preserves_all_fields() -> None:
+    diag = Diagnostic(
+        range=Range(start=Position(line=99, character=50), end=Position(line=100, character=0)),
+        message="Long message with special chars: <>&\"'",
+        code="NASA01-A",
+    )
+    result = _to_lsp_diagnostic(diag)
+    assert result.message == "Long message with special chars: <>&\"'"
+    assert result.code == "NASA01-A"
+    assert isinstance(result.range, types.Range)
+    assert isinstance(result.range.start, types.Position)
+    assert isinstance(result.range.end, types.Position)
+
+
+def test_server_is_language_server() -> None:
+    assert server is not None
+    assert server.name == "nasa-python-lsp"
+
+
+def test_server_version() -> None:
+    assert server.version == "0.2.0"

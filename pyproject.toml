@@ -4,14 +4,18 @@ version = "0.1.2"
 description = "A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = [
-    "basedpyright>=1.37.1",
-    "pygls>=2.0.0",
-    "typer>=0.21.1",
-]
+dependencies = ["pygls>=2.0.0", "typer>=0.21.1"]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0", "basedpyright>=1.29", "ruff>=0.11", "prek>=0.2.30"]
+dev = [
+  "basedpyright>=1.29",
+  "mutmut>=3.2",
+  "prek>=0.2.30",
+  "pytest-cov>=7.0.0",
+  "pytest>=8.0",
+  "pytest-cov>=6.0",
+  "ruff>=0.11",
+]
 
 [tool.uv]
 package = true
@@ -26,12 +30,29 @@ line-length = 120
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "D",       # pydocstyle
-    "COM812",  # trailing-comma (conflicts with formatter)
-    "ISC001",  # single-line-implicit-string-concatenation (conflicts with formatter)
-    "S101",    # assert (we use asserts intentionally for NASA rules)
+  "D",      # pydocstyle
+  "COM812", # trailing-comma (conflicts with formatter)
+  "ISC001", # single-line-implicit-string-concatenation (conflicts with formatter)
+  "S101",   # assert (we use asserts intentionally for NASA rules)
 ]
 
 [tool.basedpyright]
 pythonVersion = "3.13"
 typeCheckingMode = "all"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src/nasa_lsp"]
+branch = true
+omit = ["src/nasa_lsp/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 90
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "assert False"]
+
+[tool.mutmut]
+paths_to_mutate = "src/nasa_lsp/"
+tests_dir = "tests/"
+runner = "python -m pytest -x --tb=no -q"
