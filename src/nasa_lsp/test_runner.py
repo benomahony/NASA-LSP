@@ -7,6 +7,9 @@ import sys
 
 def main() -> int:
     """Run tests with coverage, then mutation tests if successful."""
+    assert sys.version_info >= (3, 13), "Python 3.13+ required"
+    assert subprocess.run is not None, "subprocess.run must be available"
+
     print("Running tests with coverage...")
     result = subprocess.run(
         [

@@ -48,7 +48,7 @@ norecursedirs = ["mutants", ".venv", "dist", "build"]
 [tool.coverage.run]
 source = ["src/nasa_lsp"]
 branch = true
-omit = ["src/nasa_lsp/__init__.py", "src/nasa_lsp/test_runner.py"]
+omit = ["src/nasa_lsp/__init__.py"]
 
 [tool.coverage.report]
 fail_under = 90
