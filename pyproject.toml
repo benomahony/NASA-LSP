@@ -51,8 +51,3 @@ omit = ["src/nasa_lsp/__init__.py"]
 [tool.coverage.report]
 fail_under = 90
 exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "assert False"]
-
-[tool.mutmut]
-paths_to_mutate = "src/nasa_lsp/"
-tests_dir = "tests/"
-runner = "python -m pytest -x --tb=no -q"

@@ -9,5 +9,9 @@ wheels/
 # Virtual environments
 .venv
 
+# Mutation testing
+mutants/
+.mutmut-cache/
+
 # Zensical build output
 site/
