@@ -17,5 +17,8 @@ mutants/
 .coverage
 coverage.json
 
+# Hypothesis cache
+.hypothesis/
+
 # Zensical build output
 site/
