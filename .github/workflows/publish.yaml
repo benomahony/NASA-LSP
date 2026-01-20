@@ -1,6 +1,8 @@
 name: CI and Publish
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -35,10 +37,11 @@ jobs:
         run: uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-fail-under=90
 
       - name: Run mutation tests
-        run: uv run mutmut run --no-progress --CI
+        run: uv run mutmut run
 
   publish:
     needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: pypi
