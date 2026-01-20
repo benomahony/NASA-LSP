@@ -1,5 +1,12 @@
 # NASA LSP
 
+[![CI](https://github.com/benomahony/nasa-lsp/actions/workflows/publish.yaml/badge.svg)](https://github.com/benomahony/nasa-lsp/actions/workflows/publish.yaml)
+[![codecov](https://codecov.io/gh/benomahony/nasa-lsp/branch/main/graph/badge.svg)](https://codecov.io/gh/benomahony/nasa-lsp)
+[![PyPI version](https://badge.fury.io/py/nasa-lsp.svg)](https://badge.fury.io/py/nasa-lsp)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python.
 
 ## Background

@@ -41,7 +41,7 @@ repos:
 
       - id: mutmut
         name: mutmut
-        entry: uv run mutmut run --no-progress --CI
+        entry: uv run mutmut run
         language: system
         pass_filenames: false
         always_run: true
