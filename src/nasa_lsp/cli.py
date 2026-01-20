@@ -69,7 +69,7 @@ def lint(
 @app.command()
 def serve() -> None:
     """Start the Language Server Protocol server."""
-    from nasa_lsp.server import serve as start_server
+    from nasa_lsp.server import serve as start_server  # noqa: PLC0415
 
     assert start_server is not None
     assert callable(start_server)
