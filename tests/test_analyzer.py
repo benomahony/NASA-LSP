@@ -208,7 +208,7 @@ def outer():
     result = analyze(code)
     codes = [d.code for d in result]
     assert "NASA01-B" in codes
-    inner_diag = [d for d in result if d.code == "NASA01-B"][0]
+    inner_diag = next(d for d in result if d.code == "NASA01-B")
     assert "inner" in inner_diag.message
 
 
@@ -259,7 +259,7 @@ def test_nasa04_detects_long_function() -> None:
     result = analyze(code)
     codes = [d.code for d in result]
     assert "NASA04" in codes
-    nasa04 = [d for d in result if d.code == "NASA04"][0]
+    nasa04 = next(d for d in result if d.code == "NASA04")
     assert "long_func" in nasa04.message
     assert "60" in nasa04.message
 
@@ -344,7 +344,7 @@ def outer():
     result = analyze(code)
     codes = [d.code for d in result]
     assert codes.count("NASA05") == 1
-    nasa05 = [d for d in result if d.code == "NASA05"][0]
+    nasa05 = next(d for d in result if d.code == "NASA05")
     assert "outer" in nasa05.message
 
 
@@ -358,7 +358,6 @@ def outer():
     pass
 """
     result = analyze(code)
-    codes = [d.code for d in result]
     outer_diags = [d for d in result if "outer" in d.message]
     assert len(outer_diags) == 1
     assert outer_diags[0].code == "NASA05"
@@ -401,6 +400,7 @@ async def with_asserts():
 
 def test_diagnostic_position_is_correct() -> None:
     code = "def foo():\n    pass"
+    expected_col = len("def ")
     result = analyze(code)
     assert len(result) == 1
     diag = result[0]
@@ -408,7 +408,7 @@ def test_diagnostic_position_is_correct() -> None:
     assert isinstance(diag.range.start, Position)
     assert isinstance(diag.range.end, Position)
     assert diag.range.start.line == 0
-    assert diag.range.start.character == 4
+    assert diag.range.start.character == expected_col
 
 
 def test_multiple_violations_in_same_code() -> None:

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 server = LanguageServer("nasa-python-lsp", "0.2.0")
 
 
-def _to_lsp_diagnostic(diag: Diagnostic) -> types.Diagnostic:
+def to_lsp_diagnostic(diag: Diagnostic) -> types.Diagnostic:
     assert diag
     assert diag.range
     return types.Diagnostic(
@@ -36,7 +36,7 @@ def run_checks(ls: LanguageServer, doc: TextDocument) -> None:
         types.PublishDiagnosticsParams(
             uri=doc.uri,
             version=doc.version,
-            diagnostics=[_to_lsp_diagnostic(d) for d in diagnostics],
+            diagnostics=[to_lsp_diagnostic(d) for d in diagnostics],
         )
     )
 

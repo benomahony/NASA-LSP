@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pathlib import Path  # noqa: TC003
+from pathlib import Path
 from typing import Annotated, Final
 
 import typer
@@ -9,16 +9,31 @@ from nasa_lsp.analyzer import Diagnostic, analyze
 
 app = typer.Typer(no_args_is_help=True)
 
-EXCLUDED_DIRS: Final = frozenset({".venv", "venv", ".git", "__pycache__", "node_modules", ".tox", ".nox", "dist", "build", ".eggs", "*.egg-info", "mutants"})
+EXCLUDED_DIRS: Final = frozenset(
+    {
+        ".venv",
+        "venv",
+        ".git",
+        "__pycache__",
+        "node_modules",
+        ".tox",
+        ".nox",
+        "dist",
+        "build",
+        ".eggs",
+        "*.egg-info",
+        "mutants",
+    }
+)
 
 
-def _should_exclude(path: Path) -> bool:
+def should_exclude(path: Path) -> bool:
     assert path
     assert isinstance(path, Path)
     return any(part in EXCLUDED_DIRS or part.endswith(".egg-info") for part in path.parts)
 
 
-def _format_diagnostic(path: Path, diag: Diagnostic) -> str:
+def format_diagnostic(path: Path, diag: Diagnostic) -> str:
     assert path
     assert diag
     line = diag.range.start.line + 1
@@ -35,16 +50,16 @@ def lint(
     assert isinstance(paths, list)
     files: list[Path] = []
     for p in paths:
-        if p.is_file() and p.suffix == ".py" and not _should_exclude(p):
+        if p.is_file() and p.suffix == ".py" and not should_exclude(p):
             files.append(p)
         elif p.is_dir():
-            files.extend(f for f in p.rglob("*.py") if not _should_exclude(f))
+            files.extend(f for f in p.rglob("*.py") if not should_exclude(f))
 
     total_errors = 0
     for file in sorted(files):
         diagnostics = analyze(file.read_text())
         for diag in diagnostics:
-            typer.echo(_format_diagnostic(file, diag))
+            typer.echo(format_diagnostic(file, diag))
         total_errors += len(diagnostics)
 
     if total_errors > 0:

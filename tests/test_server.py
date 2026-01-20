@@ -3,7 +3,7 @@ from __future__ import annotations
 from lsprotocol import types
 
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.server import _to_lsp_diagnostic, server
+from nasa_lsp.server import server, to_lsp_diagnostic
 
 
 def test_to_lsp_diagnostic_basic() -> None:
@@ -12,7 +12,7 @@ def test_to_lsp_diagnostic_basic() -> None:
         message="Test error",
         code="TEST01",
     )
-    result = _to_lsp_diagnostic(diag)
+    result = to_lsp_diagnostic(diag)
     assert isinstance(result, types.Diagnostic)
     assert result.message == "Test error"
     assert result.code == "TEST01"
@@ -21,16 +21,18 @@ def test_to_lsp_diagnostic_basic() -> None:
 
 
 def test_to_lsp_diagnostic_range_conversion() -> None:
+    end_line = 10
+    end_character = 5
     diag = Diagnostic(
-        range=Range(start=Position(line=0, character=0), end=Position(line=10, character=5)),
+        range=Range(start=Position(line=0, character=0), end=Position(line=end_line, character=end_character)),
         message="Multi-line",
         code="MULTI",
     )
-    result = _to_lsp_diagnostic(diag)
+    result = to_lsp_diagnostic(diag)
     assert result.range.start.line == 0
     assert result.range.start.character == 0
-    assert result.range.end.line == 10
-    assert result.range.end.character == 5
+    assert result.range.end.line == end_line
+    assert result.range.end.character == end_character
 
 
 def test_to_lsp_diagnostic_preserves_all_fields() -> None:
@@ -39,7 +41,7 @@ def test_to_lsp_diagnostic_preserves_all_fields() -> None:
         message="Long message with special chars: <>&\"'",
         code="NASA01-A",
     )
-    result = _to_lsp_diagnostic(diag)
+    result = to_lsp_diagnostic(diag)
     assert result.message == "Long message with special chars: <>&\"'"
     assert result.code == "NASA01-A"
     assert isinstance(result.range, types.Range)
