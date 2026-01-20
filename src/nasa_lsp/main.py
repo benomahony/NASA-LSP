@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import ast
-import logging
-from typing import List
+from pathlib import Path
 
+import typer
 from lsprotocol import types
 from pygls.lsp.server import LanguageServer
 from pygls.workspace import TextDocument
 
-
+app = typer.Typer(no_args_is_help=True)
 server = LanguageServer("nasa-python-lsp", "0.2.0")
 
 
@@ -19,7 +19,7 @@ class NasaVisitor(ast.NodeVisitor):
         self.uri = uri
         self.text = text
         self.lines = text.splitlines()
-        self.diagnostics: List[types.Diagnostic] = []
+        self.diagnostics: list[types.Diagnostic] = []
         assert self.uri
         assert self.text
         assert self.diagnostics == []
@@ -208,7 +208,7 @@ class NasaVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def analyze(uri: str, text: str) -> List[types.Diagnostic]:
+def analyze(uri: str, text: str) -> list[types.Diagnostic]:
     """Return NASA-style diagnostics for valid Python code."""
     assert uri
     assert text
@@ -251,12 +251,41 @@ def did_change(ls: LanguageServer, params) -> None:
     run_checks(ls, ls.workspace.get_text_document(params.text_document.uri))
 
 
-def serve():
-    assert server
-    assert isinstance(server, LanguageServer)
+def _format_diagnostic(path: Path, diag: types.Diagnostic) -> str:
+    line = diag.range.start.line + 1
+    col = diag.range.start.character + 1
+    return f"{path}:{line}:{col}: {diag.code} {diag.message}"
+
+
+@app.command()
+def lint(
+    paths: list[Path] = typer.Argument(..., help="Files or directories to lint"),
+) -> None:
+    """Check Python files for NASA Power of 10 rule violations."""
+    files: list[Path] = []
+    for p in paths:
+        if p.is_file() and p.suffix == ".py":
+            files.append(p)
+        elif p.is_dir():
+            files.extend(p.rglob("*.py"))
+
+    total_errors = 0
+    for file in sorted(files):
+        text = file.read_text()
+        diagnostics = analyze(str(file), text)
+        for diag in diagnostics:
+            typer.echo(_format_diagnostic(file, diag))
+        total_errors += len(diagnostics)
+
+    if total_errors > 0:
+        raise typer.Exit(1)
+
+
+@app.command()
+def serve() -> None:
+    """Start the Language Server Protocol server."""
     server.start_io()
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    serve()
+    app()
