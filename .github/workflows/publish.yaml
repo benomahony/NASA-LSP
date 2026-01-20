@@ -33,14 +33,10 @@ jobs:
       - name: Run nasa-lsp on itself
         run: uv run nasa lint src/ tests/
 
-      - name: Run tests with coverage
-        run: uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-report=json --cov-fail-under=90
-
-      - name: Run mutation tests
-        run: uv run mutmut run
-
-      - name: Check mutation score
+      - name: Run tests with coverage and mutation testing
         run: |
+          uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-report=json --cov-fail-under=90
+          uv run mutmut run
           MUTMUT_OUTPUT=$(uv run mutmut results)
           echo "$MUTMUT_OUTPUT" > mutmut_results.txt
           KILLED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🎉 \K\d+' || echo "0")
