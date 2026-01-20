@@ -22,6 +22,7 @@ package = true
 
 [project.scripts]
 nasa = "nasa_lsp.cli:app"
+test = "nasa_lsp.test_runner:main"
 
 [tool.ruff]
 target-version = "py313"
@@ -47,11 +48,12 @@ norecursedirs = ["mutants", ".venv", "dist", "build"]
 [tool.coverage.run]
 source = ["src/nasa_lsp"]
 branch = true
-omit = ["src/nasa_lsp/__init__.py"]
 
 [tool.coverage.report]
-fail_under = 90
+fail_under = 100
 exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "assert False"]
+skip_covered = false
+show_missing = true
 
 [tool.bumpversion]
 current_version = "0.1.3"
@@ -64,3 +66,8 @@ message = "Bump version: {current_version} → {new_version}"
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
+
+[dependency-groups]
+dev = [
+    "hypothesis>=6.150.2",
+]

@@ -13,5 +13,12 @@ wheels/
 mutants/
 .mutmut-cache/
 
+# Coverage reports
+.coverage
+coverage.json
+
+# Hypothesis cache
+.hypothesis/
+
 # Zensical build output
 site/

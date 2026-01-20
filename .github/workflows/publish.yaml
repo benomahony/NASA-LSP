@@ -33,11 +33,29 @@ jobs:
       - name: Run nasa-lsp on itself
         run: uv run nasa lint src/ tests/
 
-      - name: Run tests with coverage
-        run: uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-fail-under=90
+      - name: Run tests with coverage and mutation testing
+        run: |
+          uv run test
+          uv run mutmut results > mutmut_results.txt
 
-      - name: Run mutation tests
-        run: uv run mutmut run
+      - name: Generate badges
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          COVERAGE=$(uv run python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])")
+          MUTMUT_OUTPUT=$(cat mutmut_results.txt)
+          KILLED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🎉 \K\d+' || echo "0")
+          SURVIVED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🙁 \K\d+' || echo "0")
+          MUTATION_SCORE=$(uv run python -c "print(round($KILLED / ($KILLED + $SURVIVED) * 100, 1) if ($KILLED + $SURVIVED) > 0 else 0)")
+          uv run python .github/generate_badges.py "$COVERAGE" "$MUTATION_SCORE"
+
+      - name: Commit and push badges
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .github/badges/*.svg
+          git diff --staged --quiet || git commit -m "Update badges [skip ci]"
+          git push
 
   publish:
     needs: test
