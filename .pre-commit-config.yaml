@@ -38,11 +38,3 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
-
-      - id: mutmut
-        name: mutmut
-        entry: uv run mutmut run
-        language: system
-        pass_filenames: false
-        always_run: true
-        stages: [pre-push]

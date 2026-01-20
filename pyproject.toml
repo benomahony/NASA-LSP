@@ -11,6 +11,7 @@ dev = [
   "basedpyright>=1.29",
   "bump-my-version>=0.31",
   "mutmut>=3.2",
+  "pre-commit>=4.5.1",
   "prek>=0.2.30",
   "pytest-cov>=7.0.0",
   "pytest>=8.0",
@@ -64,8 +65,3 @@ message = "Bump version: {current_version} → {new_version}"
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
-
-[dependency-groups]
-dev = [
-    "pre-commit>=4.5.1",
-]
