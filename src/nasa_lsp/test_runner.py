@@ -15,6 +15,7 @@ def main() -> int:
             "pytest",
             "--cov=src/nasa_lsp",
             "--cov-report=term-missing",
+            "--cov-report=json",
             "--cov-fail-under=90",
         ],
         check=False,

@@ -35,16 +35,8 @@ jobs:
 
       - name: Run tests with coverage and mutation testing
         run: |
-          uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-report=json --cov-fail-under=90
-          uv run mutmut run
-          MUTMUT_OUTPUT=$(uv run mutmut results)
-          echo "$MUTMUT_OUTPUT" > mutmut_results.txt
-          KILLED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🎉 \K\d+' || echo "0")
-          SURVIVED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🙁 \K\d+' || echo "0")
-          if [ "$SURVIVED" -gt 0 ]; then
-            echo "❌ $SURVIVED mutation(s) survived"
-            exit 1
-          fi
+          uv run test
+          uv run mutmut results > mutmut_results.txt
 
       - name: Generate badges
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
