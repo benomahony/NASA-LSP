@@ -91,7 +91,7 @@ Fixed version:
 ```python def process_data(items):
     assert items is not None
     assert isinstance(items, list)
-    
+
     max_iterations = len(items)
     for i in range(max_iterations):
         if i >= len(items):
@@ -318,7 +318,7 @@ Fixed version:
 ```python def process_data(items):
     assert items is not None
     assert isinstance(items, list)
-    
+
     max_iterations = len(items)
     for i in range(max_iterations):
         if i >= len(items):

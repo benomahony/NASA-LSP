@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from lsprotocol import types
 from pygls.lsp.server import LanguageServer
-from pygls.workspace import TextDocument
 
-from nasa_lsp.analyzer import analyze, Diagnostic
+from nasa_lsp.analyzer import Diagnostic, analyze
+
+if TYPE_CHECKING:
+    from pygls.workspace import TextDocument
 
 server = LanguageServer("nasa-python-lsp", "0.2.0")
 
 
 def _to_lsp_diagnostic(diag: Diagnostic) -> types.Diagnostic:
     assert diag
+    assert diag.range
     return types.Diagnostic(
         range=types.Range(
             start=types.Position(line=diag.range.start.line, character=diag.range.start.character),
@@ -52,4 +57,5 @@ def did_change(ls: LanguageServer, params: types.DidChangeTextDocumentParams) ->
 
 def serve() -> None:
     assert server
+    assert isinstance(server, LanguageServer)
     server.start_io()

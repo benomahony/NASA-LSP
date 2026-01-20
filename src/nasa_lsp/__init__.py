@@ -1,3 +1,4 @@
-from nasa_lsp.main import serve
+from nasa_lsp.analyzer import Diagnostic, Position, Range, analyze
+from nasa_lsp.server import serve
 
-__all__ = ["serve"]
+__all__ = ["Diagnostic", "Position", "Range", "analyze", "serve"]

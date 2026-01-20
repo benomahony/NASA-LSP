@@ -4,10 +4,34 @@ version = "0.1.2"
 description = "A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["pygls>=2.0.0", "typer>=0.21.1"]
+dependencies = [
+    "basedpyright>=1.37.1",
+    "pygls>=2.0.0",
+    "typer>=0.21.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "basedpyright>=1.29", "ruff>=0.11", "prek>=0.2.30"]
 
 [tool.uv]
 package = true
 
 [project.scripts]
 nasa = "nasa_lsp.cli:app"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",       # pydocstyle
+    "COM812",  # trailing-comma (conflicts with formatter)
+    "ISC001",  # single-line-implicit-string-concatenation (conflicts with formatter)
+    "S101",    # assert (we use asserts intentionally for NASA rules)
+]
+
+[tool.basedpyright]
+pythonVersion = "3.13"
+typeCheckingMode = "all"

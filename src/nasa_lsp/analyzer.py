@@ -2,6 +2,10 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
+from typing import Final, override
+
+MAX_FUNCTION_LINES: Final = 60
+MIN_ASSERTS_PER_FUNCTION: Final = 2
 
 
 @dataclass
@@ -24,10 +28,11 @@ class Diagnostic:
 
 
 class NasaVisitor(ast.NodeVisitor):
-    def __init__(self, text: str):
+    def __init__(self, text: str) -> None:
         assert text
-        self.text = text
-        self.lines = text.splitlines()
+        assert isinstance(text, str)
+        self.text: str = text
+        self.lines: list[str] = text.splitlines()
         self.diagnostics: list[Diagnostic] = []
 
     @staticmethod
@@ -36,12 +41,10 @@ class NasaVisitor(ast.NodeVisitor):
         assert col >= 0
         return Position(line=lineno - 1, character=col)
 
-    def _range_for_node(self, node: ast.AST) -> Range:
+    def _range_for_node(self, node: ast.expr | ast.stmt) -> Range:
         assert node
-        assert hasattr(node, "lineno")
-        assert hasattr(node, "col_offset")
-        assert hasattr(node, "end_lineno")
-        assert hasattr(node, "end_col_offset")
+        assert node.end_lineno is not None
+        assert node.end_col_offset is not None
         return Range(
             start=self._pos(node.lineno, node.col_offset),
             end=self._pos(node.end_lineno, node.end_col_offset),
@@ -49,8 +52,7 @@ class NasaVisitor(ast.NodeVisitor):
 
     def _range_for_func_name(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> Range:
         assert node
-        assert hasattr(node, "lineno")
-        assert hasattr(node, "col_offset")
+        assert node.end_lineno is not None
         lineno = node.lineno
         col = node.col_offset
 
@@ -75,16 +77,18 @@ class NasaVisitor(ast.NodeVisitor):
             end=self._pos(lineno, name_start + len(node.name)),
         )
 
-    def _add_diag(self, range: Range, message: str, code: str) -> None:
-        assert range
+    def _add_diag(self, rng: Range, message: str, code: str) -> None:
+        assert rng
         assert message
         assert code
-        self.diagnostics.append(Diagnostic(range=range, message=message, code=code))
+        self.diagnostics.append(Diagnostic(range=rng, message=message, code=code))
 
+    @override
     def visit_Call(self, node: ast.Call) -> None:
         assert node
+        assert hasattr(node, "func")
         name: str | None = None
-        target_node: ast.AST | None = None
+        target_node: ast.expr | None = None
 
         if isinstance(node.func, ast.Name):
             name = node.func.id
@@ -104,9 +108,11 @@ class NasaVisitor(ast.NodeVisitor):
 
         self.generic_visit(node)
 
+    @override
     def visit_While(self, node: ast.While) -> None:
         assert node
-        if isinstance(node.test, ast.Constant) and node.test.value is True:
+        assert hasattr(node, "test")
+        if isinstance(node.test, ast.Constant) and node.test.value is True:  # pyright: ignore[reportAny]
             self._add_diag(
                 self._range_for_node(node),
                 "Unbounded loop 'while True' (NASA02: loops must be bounded)",
@@ -114,28 +120,25 @@ class NasaVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
-    def _check_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+    def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
         assert func_name
-        func_name_range = self._range_for_func_name(node)
-
-        calls_self = False
+        assert node.body
         for stmt in node.body:
             if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
                 continue
             for sub_node in ast.walk(stmt):
-                if isinstance(sub_node, ast.Call) and isinstance(sub_node.func, ast.Name) and sub_node.func.id == func_name:
-                    calls_self = True
-                    break
-            if calls_self:
-                break
+                if (
+                    isinstance(sub_node, ast.Call)
+                    and isinstance(sub_node.func, ast.Name)
+                    and sub_node.func.id == func_name
+                ):
+                    return True
+        return False
 
-        if calls_self:
-            self._add_diag(func_name_range, f"Recursive call to '{func_name}' (NASA01: no recursion)", "NASA01-B")
-
-        if node.end_lineno - node.lineno >= 60:
-            self._add_diag(func_name_range, f"Function '{func_name}' longer than 60 lines (NASA04: No function longer than 60 lines)", "NASA04")
-
+    def _count_asserts(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
+        assert node
+        assert node.body is not None
         assert_count = 0
         for stmt in node.body:
             if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
@@ -143,25 +146,57 @@ class NasaVisitor(ast.NodeVisitor):
             for sub_node in ast.walk(stmt):
                 if isinstance(sub_node, ast.Assert):
                     assert_count += 1
+        return assert_count
 
-        if assert_count < 2:
+    def _check_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        func_name = node.name
+        assert func_name
+        assert node.end_lineno is not None
+        func_name_range = self._range_for_func_name(node)
+
+        if self._check_recursion(node):
             self._add_diag(
                 func_name_range,
-                f"Function '{func_name}' has only {assert_count} assert(s); expected at least 2 asserts (NASA05: use assertions to detect impossible conditions)",
+                f"Recursive call to '{func_name}' (NASA01: no recursion)",
+                "NASA01-B",
+            )
+
+        if node.end_lineno - node.lineno >= MAX_FUNCTION_LINES:
+            self._add_diag(
+                func_name_range,
+                f"Function '{func_name}' longer than {MAX_FUNCTION_LINES} lines (NASA04)",
+                "NASA04",
+            )
+
+        assert_count = self._count_asserts(node)
+        if assert_count < MIN_ASSERTS_PER_FUNCTION:
+            self._add_diag(
+                func_name_range,
+                (
+                    f"Function '{func_name}' has only {assert_count} assert(s); "
+                    f"expected at least {MIN_ASSERTS_PER_FUNCTION} (NASA05)"
+                ),
                 "NASA05",
             )
 
+    @override
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        assert node
+        assert hasattr(node, "name")
         self._check_function(node)
         self.generic_visit(node)
 
+    @override
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+        assert node
+        assert hasattr(node, "name")
         self._check_function(node)
         self.generic_visit(node)
 
 
 def analyze(text: str) -> list[Diagnostic]:
     assert text
+    assert isinstance(text, str)
     try:
         tree = ast.parse(text)
     except SyntaxError:
