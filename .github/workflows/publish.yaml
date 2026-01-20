@@ -39,6 +39,25 @@ jobs:
       - name: Run mutation tests
         run: uv run mutmut run
 
+      - name: Check mutation score
+        run: |
+          # Get mutmut results
+          MUTMUT_OUTPUT=$(uv run mutmut results)
+          echo "$MUTMUT_OUTPUT"
+
+          # Extract counts
+          KILLED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🎉 \K\d+' || echo "0")
+          SURVIVED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🙁 \K\d+' || echo "0")
+
+          # Fail if any mutations survived
+          if [ "$SURVIVED" -gt 0 ]; then
+            echo "❌ CI Failed: $SURVIVED mutation(s) survived!"
+            echo "Run 'mutmut results' locally to see details"
+            exit 1
+          fi
+
+          echo "✅ All $KILLED mutations were killed!"
+
       - name: Generate badges
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
