@@ -14,6 +14,18 @@ def test_analyze_returns_empty_for_syntax_error() -> None:
     assert isinstance(result, list)
 
 
+def test_analyze_returns_empty_for_empty_string() -> None:
+    result = analyze("")
+    assert result == []
+    assert isinstance(result, list)
+
+
+def test_analyze_returns_empty_for_whitespace_only() -> None:
+    result = analyze("   \n\n  \t  ")
+    assert result == []
+    assert isinstance(result, list)
+
+
 def test_analyze_returns_empty_for_valid_code_with_asserts() -> None:
     code = """
 def foo():
@@ -153,6 +165,7 @@ def foo():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa01b_detects_direct_recursion() -> None:
@@ -180,6 +193,7 @@ def add(a, b):
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa01b_detects_nested_function_recursion() -> None:
@@ -223,6 +237,7 @@ def foo():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa02_allows_while_false() -> None:
@@ -235,6 +250,7 @@ def foo():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa04_detects_long_function() -> None:
@@ -257,6 +273,7 @@ def short_func():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa05_detects_zero_asserts() -> None:
@@ -289,6 +306,7 @@ def two_asserts():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa05_allows_more_than_two_asserts() -> None:
@@ -300,6 +318,7 @@ def many_asserts():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa05_counts_nested_asserts() -> None:
@@ -311,6 +330,7 @@ def nested_asserts():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_nasa05_ignores_asserts_in_nested_functions() -> None:
@@ -376,6 +396,7 @@ async def with_asserts():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_diagnostic_position_is_correct() -> None:
@@ -412,6 +433,7 @@ print(x + y)
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_class_method_checked_for_asserts() -> None:
@@ -436,6 +458,7 @@ def foo():
 """
     result = analyze(code)
     assert result == []
+    assert len(result) == 0
 
 
 def test_range_for_func_name_fallback_when_def_not_found() -> None:

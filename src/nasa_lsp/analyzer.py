@@ -195,8 +195,10 @@ class NasaVisitor(ast.NodeVisitor):
 
 
 def analyze(text: str) -> list[Diagnostic]:
-    assert text
     assert isinstance(text, str)
+    assert text is not None
+    if not text.strip():
+        return []
     try:
         tree = ast.parse(text)
     except SyntaxError:

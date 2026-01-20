@@ -42,6 +42,7 @@ typeCheckingMode = "all"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["mutants", ".venv", "dist", "build"]
 
 [tool.coverage.run]
 source = ["src/nasa_lsp"]

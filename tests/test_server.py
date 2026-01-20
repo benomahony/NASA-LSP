@@ -54,3 +54,4 @@ def test_server_is_language_server() -> None:
 
 def test_server_version() -> None:
     assert server.version == "0.2.0"
+    assert isinstance(server.version, str)

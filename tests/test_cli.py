@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 from typer.testing import CliRunner
 
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.cli import _format_diagnostic, app
+from nasa_lsp.cli import EXCLUDED_DIRS, _format_diagnostic, _should_exclude, app
 
 runner = CliRunner()
 
@@ -32,6 +32,7 @@ def test_format_diagnostic_first_line() -> None:
     )
     result = _format_diagnostic(path, diag)
     assert result == "file.py:1:1: ERR Error"
+    assert isinstance(result, str)
 
 
 def test_lint_no_args_shows_help() -> None:
@@ -79,6 +80,7 @@ def foo():
 """)
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
+        assert result.stdout == ""
 
 
 def test_lint_directory_with_violations() -> None:
@@ -106,6 +108,7 @@ def bar():
 """)
         result = runner.invoke(app, ["lint", str(file1), str(file2)])
         assert result.exit_code == 0
+        assert result.stdout == ""
 
 
 def test_lint_ignores_non_python_files() -> None:
@@ -114,6 +117,7 @@ def test_lint_ignores_non_python_files() -> None:
         txt_file.write_text("def foo(): pass")
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
+        assert result.stdout == ""
 
 
 def test_lint_nested_directories() -> None:
@@ -131,6 +135,7 @@ def test_lint_empty_directory() -> None:
     with TemporaryDirectory() as tmpdir:
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
+        assert result.stdout == ""
 
 
 def test_lint_sorted_output() -> None:
@@ -152,3 +157,65 @@ def test_lint_syntax_error_file_ignored() -> None:
         bad_syntax.write_text("def broken(")
         result = runner.invoke(app, ["lint", str(bad_syntax)])
         assert result.exit_code == 0
+        assert result.stdout == ""
+
+
+def test_should_exclude_venv() -> None:
+    assert _should_exclude(Path(".venv/lib/python3.14/site.py"))
+    assert _should_exclude(Path("project/.venv/test.py"))
+
+
+def test_should_exclude_pycache() -> None:
+    assert _should_exclude(Path("__pycache__/module.cpython-314.pyc"))
+    assert _should_exclude(Path("src/__pycache__/test.py"))
+
+
+def test_should_exclude_git() -> None:
+    assert _should_exclude(Path(".git/hooks/pre-commit"))
+    assert _should_exclude(Path("repo/.git/config"))
+
+
+def test_should_exclude_node_modules() -> None:
+    assert _should_exclude(Path("node_modules/package/index.py"))
+    assert _should_exclude(Path("project/node_modules/test.py"))
+
+
+def test_should_exclude_egg_info() -> None:
+    assert _should_exclude(Path("nasa_lsp.egg-info/PKG-INFO"))
+    assert _should_exclude(Path("dist/package.egg-info/top_level.txt"))
+
+
+def test_should_exclude_mutants() -> None:
+    assert _should_exclude(Path("mutants/src/test.py"))
+    assert _should_exclude(Path("project/mutants/analyzer.py"))
+
+
+def test_should_not_exclude_normal_paths() -> None:
+    assert not _should_exclude(Path("src/nasa_lsp/analyzer.py"))
+    assert not _should_exclude(Path("tests/test_cli.py"))
+    assert not _should_exclude(Path("main.py"))
+
+
+def test_excluded_dirs_is_frozen() -> None:
+    assert isinstance(EXCLUDED_DIRS, frozenset)
+    assert ".venv" in EXCLUDED_DIRS
+
+
+def test_lint_excludes_venv() -> None:
+    with TemporaryDirectory() as tmpdir:
+        venv_dir = Path(tmpdir) / ".venv" / "lib"
+        venv_dir.mkdir(parents=True)
+        venv_file = venv_dir / "bad.py"
+        venv_file.write_text("def foo(): pass")
+        result = runner.invoke(app, ["lint", str(tmpdir)])
+        assert result.exit_code == 0
+        assert ".venv" not in result.stdout
+
+
+def test_lint_empty_file() -> None:
+    with TemporaryDirectory() as tmpdir:
+        empty_file = Path(tmpdir) / "__init__.py"
+        empty_file.write_text("")
+        result = runner.invoke(app, ["lint", str(empty_file)])
+        assert result.exit_code == 0
+        assert result.stdout == ""
