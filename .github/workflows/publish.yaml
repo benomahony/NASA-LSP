@@ -41,9 +41,12 @@ jobs:
 
       - name: Check mutation score
         run: |
-          # Get mutmut results
+          # Get mutmut results (only call this once)
           MUTMUT_OUTPUT=$(uv run mutmut results)
           echo "$MUTMUT_OUTPUT"
+
+          # Save to file for badge generation
+          echo "$MUTMUT_OUTPUT" > mutmut_results.txt
 
           # Extract counts
           KILLED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🎉 \K\d+' || echo "0")
@@ -64,11 +67,12 @@ jobs:
           # Extract coverage percentage
           COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])")
 
-          # Extract mutation score from mutmut
-          MUTMUT_OUTPUT=$(uv run mutmut results)
+          # Read mutation results from saved file
+          MUTMUT_OUTPUT=$(cat mutmut_results.txt)
           KILLED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🎉 \K\d+' || echo "0")
-          TOTAL=$(uv run mutmut show | grep -oP '\d+(?= total)' || echo "1")
-          MUTATION_SCORE=$(python -c "print(round($KILLED / $TOTAL * 100, 1))")
+          SURVIVED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🙁 \K\d+' || echo "0")
+          TOTAL=$((KILLED + SURVIVED))
+          MUTATION_SCORE=$(python -c "print(round($KILLED / $TOTAL * 100, 1) if $TOTAL > 0 else 0)")
 
           # Generate badges
           python .github/generate_badges.py "$COVERAGE" "$MUTATION_SCORE"
