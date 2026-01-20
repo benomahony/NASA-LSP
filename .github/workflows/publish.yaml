@@ -53,12 +53,12 @@ jobs:
       - name: Generate badges
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          COVERAGE=$(python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])")
+          COVERAGE=$(uv run python -c "import json; print(json.load(open('coverage.json'))['totals']['percent_covered'])")
           MUTMUT_OUTPUT=$(cat mutmut_results.txt)
           KILLED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🎉 \K\d+' || echo "0")
           SURVIVED=$(echo "$MUTMUT_OUTPUT" | grep -oP '🙁 \K\d+' || echo "0")
-          MUTATION_SCORE=$(python -c "print(round($KILLED / ($KILLED + $SURVIVED) * 100, 1) if ($KILLED + $SURVIVED) > 0 else 0)")
-          python .github/generate_badges.py "$COVERAGE" "$MUTATION_SCORE"
+          MUTATION_SCORE=$(uv run python -c "print(round($KILLED / ($KILLED + $SURVIVED) * 100, 1) if ($KILLED + $SURVIVED) > 0 else 0)")
+          uv run python .github/generate_badges.py "$COVERAGE" "$MUTATION_SCORE"
 
       - name: Commit and push badges
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
