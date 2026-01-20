@@ -41,12 +41,19 @@ This project uses **prek** (not pre-commit). Hooks are configured in `.pre-commi
 ### Coverage
 - **No exclusions**: All code in `src/nasa_lsp` is covered, including `__init__.py` and `test_runner.py`
 - Coverage reports saved as `.coverage` and `coverage.json` (gitignored)
-- Minimum threshold: 90%
+- Minimum threshold: 100% (both line and branch coverage)
 
 ### Mutation Testing
 - Runs after pytest succeeds
 - 100% of mutations must be killed for CI to pass
 - Results cached in `.mutmut-cache/` (gitignored)
+
+### Fuzzing & Property-Based Testing
+- **Hypothesis**: Property-based testing generates random valid Python code
+- **AST Fuzzing**: Tests with various AST structures (empty, nested, large)
+- **LSP Protocol Fuzzing**: Tests unicode handling, line endings, long lines
+- Fuzzing tests in `tests/test_fuzzing.py`
+- Ensures analyzer never crashes on any valid Python input
 
 ### Code Quality
 - All Python code checked by nasa-lsp itself (dogfooding)
