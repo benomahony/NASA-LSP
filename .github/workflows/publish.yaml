@@ -1,6 +1,8 @@
 name: CI and Publish
 
 on:
+  pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -39,6 +41,7 @@ jobs:
 
   publish:
     needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: pypi
