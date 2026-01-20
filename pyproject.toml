@@ -22,6 +22,7 @@ package = true
 
 [project.scripts]
 nasa = "nasa_lsp.cli:app"
+test = "nasa_lsp.test_runner:main"
 
 [tool.ruff]
 target-version = "py313"

@@ -38,3 +38,4 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
+        exclude: ^src/nasa_lsp/test_runner\.py$
