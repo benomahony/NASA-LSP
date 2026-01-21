@@ -10,6 +10,7 @@ dependencies = ["dead>=2.1.0", "pygls>=2.0.0", "typer>=0.21.1"]
 dev = [
   "basedpyright>=1.29",
   "bump-my-version>=0.31",
+  "hypothesis>=6.0.0",
   "mutmut>=3.2",
   "prek>=0.2.30",
   "pytest-cov>=7.0.0",
