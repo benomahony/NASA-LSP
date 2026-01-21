@@ -1,0 +1,10 @@
+visit_Call
+visit_While
+visit_FunctionDef
+visit_AsyncFunctionDef
+did_open
+did_change
+did_save
+did_close
+lint
+format_diagnostic

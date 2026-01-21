@@ -46,3 +46,10 @@ repos:
         pass_filenames: false
         always_run: true
         stages: [pre-push]
+
+      - id: dead
+        name: dead
+        entry: uv run dead --symbol-allowlist .dead-allowlist
+        language: system
+        types: [python]
+        pass_filenames: false

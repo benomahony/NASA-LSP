@@ -4,7 +4,11 @@ version = "0.1.4"
 description = "A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python."
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = ["pygls>=2.0.0", "typer>=0.21.1"]
+dependencies = [
+    "dead>=2.1.0",
+    "pygls>=2.0.0",
+    "typer>=0.21.1",
+]
 
 [project.optional-dependencies]
 dev = [
