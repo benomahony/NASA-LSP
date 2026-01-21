@@ -1,0 +1,7 @@
+- id: nasa-lsp
+  name: nasa-lsp
+  description: Check Python files for NASA Power of 10 rule violations
+  entry: nasa lint
+  language: python
+  types: [python]
+  minimum_pre_commit_version: "2.9.0"

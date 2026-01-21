@@ -31,6 +31,18 @@ nasa lint src/ tests/
 nasa serve
 ```
 
+## Pre-commit
+
+Add to your `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/benomahony/nasa-lsp
+    rev: v0.1.4
+    hooks:
+      - id: nasa-lsp
+```
+
 ## Editor Configuration
 
 ### Neovim
