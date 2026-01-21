@@ -111,9 +111,7 @@ def test_file_with_500_functions() -> None:
     lines = ['"""Module with many functions."""', ""]
 
     for i in range(500):
-        lines.extend(
-            [f"def func_{i}():", "    assert True", "    assert False", "    pass", ""]
-        )
+        lines.extend([f"def func_{i}():", "    assert True", "    assert False", "    pass", ""])
 
     code = "\n".join(lines)
     result = analyze(code)
@@ -595,9 +593,7 @@ def test_{api}():
 """
         result = analyze(code)
         nasa01a_violations = [d for d in result if d.code == "NASA01-A"]
-        assert (
-            len(nasa01a_violations) == 1
-        ), f"Failed to detect forbidden API: {api}"
+        assert len(nasa01a_violations) == 1, f"Failed to detect forbidden API: {api}"
         assert api in result[0].message
 
 

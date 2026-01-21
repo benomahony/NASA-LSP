@@ -26,40 +26,56 @@ random.seed(FUZZ_SEED)
 
 # Try to import hypothesis for property-based testing
 try:
-    from hypothesis import given, settings, strategies as st
-    from hypothesis import assume
+    from hypothesis import given, settings
+    from hypothesis import strategies as st
 
     HAS_HYPOTHESIS = True
 except ImportError:
-    HAS_HYPOTHESIS = False
+    # pyright: reportUnknownParameterType=false, reportExplicitAny=false
+    # pyright: reportAssignmentType=false, reportConstantRedefinition=false
+    # pyright: reportUnusedParameter=false, reportMissingParameterType=false
+    # pyright: reportUnusedImport=false, reportUnknownVariableType=false
+    # pyright: reportUnknownArgumentType=false
+    HAS_HYPOTHESIS = False  # type: ignore[assignment]
+
     # Create dummy decorators if hypothesis is not available
     def given(*args: Any, **kwargs: Any):  # type: ignore[misc]
-        def decorator(f):  # type: ignore[misc]
+        """Dummy given decorator when hypothesis is not installed."""
+
+        def decorator(f: Any) -> Any:  # type: ignore[misc]
             return pytest.mark.skip(reason="hypothesis not installed")(f)
 
         return decorator
 
     def settings(*args: Any, **kwargs: Any):  # type: ignore[misc]
-        def decorator(f):  # type: ignore[misc]
+        """Dummy settings decorator when hypothesis is not installed."""
+
+        def decorator(f: Any) -> Any:  # type: ignore[misc]
             return f
 
         return decorator
 
     class st:  # type: ignore[no-redef]
+        """Dummy strategies class when hypothesis is not installed."""
+
         @staticmethod
-        def text(*args: Any, **kwargs: Any) -> Any:
+        def text(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            """Dummy text strategy."""
             return None
 
         @staticmethod
-        def integers(*args: Any, **kwargs: Any) -> Any:
+        def integers(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            """Dummy integers strategy."""
             return None
 
         @staticmethod
-        def lists(*args: Any, **kwargs: Any) -> Any:
+        def lists(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            """Dummy lists strategy."""
             return None
 
         @staticmethod
-        def booleans(*args: Any, **kwargs: Any) -> Any:
+        def booleans(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
+            """Dummy booleans strategy."""
             return None
 
 
@@ -82,7 +98,7 @@ def test_analyze_never_crashes_on_random_strings(code: str) -> None:
             assert hasattr(diagnostic, "message")
             assert hasattr(diagnostic, "code")
     except Exception as e:
-        pytest.fail(f"analyze() crashed on input: {repr(code)}\nError: {e}")
+        pytest.fail(f"analyze() crashed on input: {code!r}\nError: {e}")
 
 
 @given(st.text(alphabet=string.printable))
