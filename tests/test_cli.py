@@ -8,9 +8,6 @@ from typer.testing import CliRunner
 from nasa_lsp.analyzer import Diagnostic, Position, Range
 from nasa_lsp.cli import EXCLUDED_DIRS, app, format_diagnostic, should_exclude
 
-TYPER_USAGE_ERROR_EXIT_CODE = 2
-
-
 runner = CliRunner()
 
 
@@ -38,10 +35,10 @@ def test_format_diagnostic_first_line() -> None:
     assert isinstance(result, str)
 
 
-def test_lint_no_args_shows_help() -> None:
-    result = runner.invoke(app, [])
-    assert result.exit_code == TYPER_USAGE_ERROR_EXIT_CODE
-    assert "Usage" in result.stdout or "lint" in result.stdout
+def test_lint_no_args_lints_cwd() -> None:
+    result = runner.invoke(app, ["lint"])
+    assert result.exit_code in (0, 1)
+    assert result.stdout
 
 
 def test_lint_clean_file() -> None:
@@ -55,7 +52,7 @@ def foo():
 """)
         result = runner.invoke(app, ["lint", str(clean_file)])
         assert result.exit_code == 0
-        assert result.stdout == ""
+        assert "no violations" in result.stdout
 
 
 def test_lint_file_with_violations() -> None:
@@ -83,7 +80,7 @@ def foo():
 """)
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
-        assert result.stdout == ""
+        assert "no violations" in result.stdout
 
 
 def test_lint_directory_with_violations() -> None:
@@ -111,7 +108,7 @@ def bar():
 """)
         result = runner.invoke(app, ["lint", str(file1), str(file2)])
         assert result.exit_code == 0
-        assert result.stdout == ""
+        assert "no violations" in result.stdout
 
 
 def test_lint_ignores_non_python_files() -> None:
@@ -120,7 +117,7 @@ def test_lint_ignores_non_python_files() -> None:
         _ = txt_file.write_text("def foo(): pass")
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
-        assert result.stdout == ""
+        assert "no violations" in result.stdout or "0 file" in result.stdout
 
 
 def test_lint_nested_directories() -> None:
@@ -138,7 +135,7 @@ def test_lint_empty_directory() -> None:
     with TemporaryDirectory() as tmpdir:
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
-        assert result.stdout == ""
+        assert "0 file" in result.stdout or "no violations" in result.stdout
 
 
 def test_lint_sorted_output() -> None:
@@ -149,9 +146,9 @@ def test_lint_sorted_output() -> None:
         _ = a_file.write_text("def a(): pass")
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 1
-        lines = result.stdout.strip().split("\n")
-        assert "a.py" in lines[0]
-        assert "z.py" in lines[1]
+        a_pos = result.stdout.find("a.py")
+        z_pos = result.stdout.find("z.py")
+        assert a_pos < z_pos, "a.py should appear before z.py in output"
 
 
 def test_lint_syntax_error_file_ignored() -> None:
@@ -160,7 +157,7 @@ def test_lint_syntax_error_file_ignored() -> None:
         _ = bad_syntax.write_text("def broken(")
         result = runner.invoke(app, ["lint", str(bad_syntax)])
         assert result.exit_code == 0
-        assert result.stdout == ""
+        assert "no violations" in result.stdout or "0 file" in result.stdout
 
 
 def test_should_exclude_venv() -> None:
@@ -213,6 +210,7 @@ def test_lint_excludes_venv() -> None:
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
         assert ".venv" not in result.stdout
+        assert "no violations" in result.stdout or "0 file" in result.stdout
 
 
 def test_lint_empty_file() -> None:
@@ -221,4 +219,4 @@ def test_lint_empty_file() -> None:
         _ = empty_file.write_text("")
         result = runner.invoke(app, ["lint", str(empty_file)])
         assert result.exit_code == 0
-        assert result.stdout == ""
+        assert "no violations" in result.stdout

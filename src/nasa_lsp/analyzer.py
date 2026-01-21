@@ -112,7 +112,7 @@ class NasaVisitor(ast.NodeVisitor):
     def visit_While(self, node: ast.While) -> None:
         assert node
         assert hasattr(node, "test")
-        if isinstance(node.test, ast.Constant) and node.test.value is True:
+        if isinstance(node.test, ast.Constant) and node.test.value is True:  # pyright: ignore[reportAny]
             self._add_diag(
                 self._range_for_node(node),
                 "Unbounded loop 'while True' (NASA02: loops must be bounded)",

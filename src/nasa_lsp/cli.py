@@ -4,10 +4,12 @@ from pathlib import Path
 from typing import Annotated, Final
 
 import typer
+from rich.console import Console
 
 from nasa_lsp.analyzer import Diagnostic, analyze
 
-app = typer.Typer(no_args_is_help=True)
+app = typer.Typer()
+console = Console()
 
 EXCLUDED_DIRS: Final = frozenset(
     {
@@ -21,7 +23,6 @@ EXCLUDED_DIRS: Final = frozenset(
         "dist",
         "build",
         ".eggs",
-        "*.egg-info",
         "mutants",
     }
 )
@@ -41,29 +42,52 @@ def format_diagnostic(path: Path, diag: Diagnostic) -> str:
     return f"{path}:{line}:{col}: {diag.code} {diag.message}"
 
 
+def print_diagnostic(path: Path, diag: Diagnostic, cwd: Path) -> None:
+    assert path
+    assert diag
+    assert console, "Rich console not initialized"
+    rel_path = path.relative_to(cwd) if path.is_relative_to(cwd) else path
+    line = diag.range.start.line + 1
+    col = diag.range.start.character + 1
+    location = f"  [cyan]{rel_path}[/cyan]:[yellow]{line}[/yellow]:[dim]{col}[/dim]"
+    message = f"[red bold]{diag.code}[/red bold] [white]{diag.message}[/white]"
+    console.print(f"{location} {message}")
+
+
 @app.command()
 def lint(
-    paths: Annotated[list[Path], typer.Argument(help="Files or directories to lint")],
+    paths: Annotated[list[Path] | None, typer.Argument(help="Files or directories to lint")] = None,
 ) -> None:
     """Check Python files for NASA Power of 10 rule violations."""
+    cwd = Path.cwd()
+    if paths is None:
+        paths = [cwd]
     assert paths
-    assert isinstance(paths, list)
+    assert all(isinstance(p, Path) for p in paths)
     files: list[Path] = []
     for p in paths:
         if p.is_file() and p.suffix == ".py" and not should_exclude(p):
             files.append(p)
-        elif p.is_dir():
+        elif p.is_dir() and not should_exclude(p):
             files.extend(f for f in p.rglob("*.py") if not should_exclude(f))
 
     total_errors = 0
+    files_with_errors = 0
     for file in sorted(files):
         diagnostics = analyze(file.read_text())
-        for diag in diagnostics:
-            typer.echo(format_diagnostic(file, diag))
-        total_errors += len(diagnostics)
+        if diagnostics:
+            files_with_errors += 1
+            for diag in diagnostics:
+                print_diagnostic(file, diag, cwd)
+            total_errors += len(diagnostics)
 
     if total_errors > 0:
+        violations = f"{total_errors} violation{'s' if total_errors != 1 else ''}"
+        file_count = f"{files_with_errors} file{'s' if files_with_errors != 1 else ''}"
+        console.print(f"\n[red bold]✗[/red bold] {violations} in {file_count}")
         raise typer.Exit(1)
+    file_count = f"{len(files)} file{'s' if len(files) != 1 else ''}"
+    console.print(f"[green bold]✓[/green bold] {file_count} checked, no violations")
 
 
 @app.command()
