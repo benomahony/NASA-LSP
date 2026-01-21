@@ -10,14 +10,15 @@ repos:
       - id: check-merge-conflict
       - id: debug-statements
 
-  - repo: https://github.com/DetachHead/basedpyright-pre-commit-mirror
-    rev: 1.29.1
-    hooks:
-      - id: basedpyright
-        additional_dependencies: [pygls>=2.0.0, typer>=0.21.1]
-
   - repo: local
     hooks:
+      - id: basedpyright
+        name: basedpyright
+        entry: uv run basedpyright
+        language: system
+        types: [python]
+        pass_filenames: false
+
       - id: ruff-check
         name: ruff check
         entry: uv run ruff check --fix
