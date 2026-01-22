@@ -476,3 +476,70 @@ def empty():
     result = analyze(code)
     assert len(result) == 1
     assert result[0].code == "NASA05"
+
+
+def test_range_for_func_name_with_whitespace() -> None:
+    code = """
+def     foo():
+    assert True
+    assert False
+"""
+    result = analyze(code)
+    assert result == []
+
+
+def test_call_with_no_name() -> None:
+    code = """
+def foo():
+    assert True
+    assert False
+    x = (lambda: None)()
+"""
+    result = analyze(code)
+    assert result == []
+
+
+def test_call_with_subscript() -> None:
+    code = """
+def foo():
+    assert True
+    assert False
+    funcs = [print, len]
+    funcs[0]("hello")
+"""
+    result = analyze(code)
+    assert result == []
+
+
+def test_range_for_func_invalid_line_number() -> None:
+    import ast
+
+    from nasa_lsp.analyzer import NasaVisitor
+
+    code = """
+def foo():
+    assert True
+    assert False
+"""
+    tree = ast.parse(code)
+    visitor = NasaVisitor(code)
+
+    func_def = tree.body[0]
+    assert isinstance(func_def, ast.FunctionDef)
+
+    saved_lineno = func_def.lineno
+    func_def.lineno = 9999
+    try:
+        visitor._range_for_func_name(func_def)
+    finally:
+        func_def.lineno = saved_lineno
+
+
+def test_async_def_range_with_whitespace() -> None:
+    code = """
+async   def     foo():
+    assert True
+    assert False
+"""
+    result = analyze(code)
+    assert result == []

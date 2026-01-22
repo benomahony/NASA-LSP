@@ -220,3 +220,155 @@ def test_lint_empty_file() -> None:
         result = runner.invoke(app, ["lint", str(empty_file)])
         assert result.exit_code == 0
         assert "no violations" in result.stdout
+
+
+def test_serve_command_exists() -> None:
+    from nasa_lsp.cli import serve
+
+    assert callable(serve)
+    assert serve is not None
+
+
+def test_lint_multiple_directories() -> None:
+    with TemporaryDirectory() as tmpdir:
+        dir1 = Path(tmpdir) / "dir1"
+        dir2 = Path(tmpdir) / "dir2"
+        dir1.mkdir()
+        dir2.mkdir()
+
+        file1 = dir1 / "test1.py"
+        file2 = dir2 / "test2.py"
+
+        _ = file1.write_text("""
+def foo():
+    assert True
+    assert False
+""")
+        _ = file2.write_text("""
+def bar():
+    assert True
+    assert False
+""")
+
+        result = runner.invoke(app, ["lint", str(dir1), str(dir2)])
+        assert result.exit_code == 0
+        assert "no violations" in result.stdout
+
+
+def test_lint_mixed_files_and_directories() -> None:
+    with TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        subdir = tmpdir_path / "subdir"
+        subdir.mkdir()
+
+        direct_file = tmpdir_path / "direct.py"
+        nested_file = subdir / "nested.py"
+
+        _ = direct_file.write_text("""
+def foo():
+    assert True
+    assert False
+""")
+        _ = nested_file.write_text("""
+def bar():
+    assert True
+    assert False
+""")
+
+        result = runner.invoke(app, ["lint", str(direct_file), str(subdir)])
+        assert result.exit_code == 0
+        assert "no violations" in result.stdout
+
+
+def test_lint_directory_then_file() -> None:
+    with TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        subdir = tmpdir_path / "subdir"
+        subdir.mkdir()
+
+        direct_file = tmpdir_path / "direct.py"
+        nested_file = subdir / "nested.py"
+
+        _ = direct_file.write_text("""
+def foo():
+    assert True
+    assert False
+""")
+        _ = nested_file.write_text("""
+def bar():
+    assert True
+    assert False
+""")
+
+        result = runner.invoke(app, ["lint", str(subdir), str(direct_file)])
+        assert result.exit_code == 0
+        assert "no violations" in result.stdout
+
+
+def test_lint_two_directories_in_sequence() -> None:
+    with TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        dir1 = tmpdir_path / "dir1"
+        dir2 = tmpdir_path / "dir2"
+        dir1.mkdir()
+        dir2.mkdir()
+
+        file1 = dir1 / "test1.py"
+        file2 = dir2 / "test2.py"
+
+        _ = file1.write_text("""
+def foo():
+    assert True
+    assert False
+""")
+        _ = file2.write_text("""
+def bar():
+    assert True
+    assert False
+""")
+
+        result = runner.invoke(app, ["lint", str(dir1), str(dir2)])
+        assert result.exit_code == 0
+        assert "2 file" in result.stdout
+
+
+def test_print_diagnostic() -> None:
+    from nasa_lsp.cli import print_diagnostic
+
+    path = Path("/test/file.py")
+    cwd = Path("/test")
+    diag = Diagnostic(
+        range=Range(start=Position(line=5, character=10), end=Position(line=5, character=20)),
+        message="Test error",
+        code="TEST01",
+    )
+    print_diagnostic(path, diag, cwd)
+
+
+def test_print_diagnostic_non_relative_path() -> None:
+    from nasa_lsp.cli import print_diagnostic
+
+    path = Path("/other/file.py")
+    cwd = Path("/test")
+    diag = Diagnostic(
+        range=Range(start=Position(line=0, character=0), end=Position(line=0, character=5)),
+        message="Error",
+        code="ERR",
+    )
+    print_diagnostic(path, diag, cwd)
+
+
+def test_main_block() -> None:
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    cli_path = Path(__file__).parent.parent / "src" / "nasa_lsp" / "cli.py"
+    result = subprocess.run(
+        [sys.executable, str(cli_path), "lint", "--help"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    assert result.returncode == 0
+    assert "NASA" in result.stdout or "lint" in result.stdout

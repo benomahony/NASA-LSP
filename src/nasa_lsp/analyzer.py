@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import ast
 from dataclasses import dataclass
-from typing import Final, override
+from typing import Final
+from typing_extensions import override
 
 MAX_FUNCTION_LINES: Final = 60
 MIN_ASSERTS_PER_FUNCTION: Final = 2
