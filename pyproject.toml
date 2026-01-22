@@ -45,7 +45,6 @@ ignore = [
   "PLR2004", # magic values in comparisons (common and clear in test assertions)
 ]
 "tests/test_fuzzing.py" = [
-  "ARG004",  # unused static method arguments (API compatibility for hypothesis fallback stubs)
   "BLE001",  # blind exception (intentionally testing robustness against any exception)
   "FBT001",  # boolean positional arguments (test helper functions)
   "FBT002",  # boolean default arguments (test helper functions)
