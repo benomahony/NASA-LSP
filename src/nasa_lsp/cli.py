@@ -68,7 +68,7 @@ def lint(
     for p in paths:
         if p.is_file() and p.suffix == ".py" and not should_exclude(p):
             files.append(p)
-        elif p.is_dir() and not should_exclude(p):  # pragma: no branch
+        elif p.is_dir() and not should_exclude(p):
             files.extend(f for f in p.rglob("*.py") if not should_exclude(f))
 
     total_errors = 0
@@ -91,7 +91,7 @@ def lint(
 
 
 @app.command()
-def serve() -> None:  # pragma: no cover
+def serve() -> None:
     """Start the Language Server Protocol server."""
     from nasa_lsp.server import serve as start_server  # noqa: PLC0415
 
@@ -100,5 +100,5 @@ def serve() -> None:  # pragma: no cover
     start_server()
 
 
-if __name__ == "__main__":  # pragma: no cover
+if __name__ == "__main__":
     app()

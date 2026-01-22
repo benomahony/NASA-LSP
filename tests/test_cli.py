@@ -222,16 +222,25 @@ def test_lint_empty_file() -> None:
         assert "no violations" in result.stdout
 
 
-def test_serve_command_starts() -> None:
-    import threading
+def test_serve_command_integration() -> None:
+    """Integration test that serve command actually starts the server process."""
+    import subprocess
+    import sys
     import time
-    from nasa_lsp.cli import serve
 
-    server_thread = threading.Thread(target=serve, daemon=True)
-    server_thread.start()
+    proc = subprocess.Popen(
+        [sys.executable, "-c", "from nasa_lsp.cli import serve; serve()"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
     time.sleep(0.1)
-    server_thread.join(timeout=0.2)
-    assert True
+
+    proc.terminate()
+    proc.wait(timeout=2)
+
+    assert proc.returncode in (0, -15)
 
 
 def test_lint_multiple_directories() -> None:

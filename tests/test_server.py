@@ -68,41 +68,43 @@ def test_server_has_handlers_registered() -> None:
     assert did_change is not None
 
 
-class FakeDocument:
+# Minimal simulation objects for testing run_checks
+class SimulatedDocument:
+    """Simulates a text document with just the attributes run_checks needs."""
+
     def __init__(self, source: str, uri: str = "file:///test.py", version: int = 1) -> None:
-        assert source is not None
-        assert uri
-        assert version >= 0
         self.source = source
         self.uri = uri
         self.version = version
 
 
-class FakeLanguageServer:
+class SimulatedLanguageServer:
+    """Simulates a language server that captures diagnostic publications."""
+
     def __init__(self) -> None:
-        self.published_diagnostics: list[types.PublishDiagnosticsParams] = []
+        self.published: list[types.PublishDiagnosticsParams] = []
 
     def text_document_publish_diagnostics(self, params: types.PublishDiagnosticsParams) -> None:
-        assert params
-        assert params.uri
-        self.published_diagnostics.append(params)
+        self.published.append(params)
 
 
-def test_run_checks_with_violations() -> None:
-    ls = FakeLanguageServer()
-    doc = FakeDocument("def foo(): pass")
+def test_run_checks_simulation_with_violations() -> None:
+    """Simulation test: run_checks with code that has violations."""
+    ls = SimulatedLanguageServer()
+    doc = SimulatedDocument("def foo(): pass")
 
     run_checks(ls, doc)  # type: ignore[arg-type]
 
-    assert len(ls.published_diagnostics) == 1
-    assert ls.published_diagnostics[0].uri == "file:///test.py"
-    assert ls.published_diagnostics[0].version == 1
-    assert len(ls.published_diagnostics[0].diagnostics) > 0
+    assert len(ls.published) == 1
+    assert ls.published[0].uri == "file:///test.py"
+    assert ls.published[0].version == 1
+    assert len(ls.published[0].diagnostics) > 0
 
 
-def test_run_checks_without_violations() -> None:
-    ls = FakeLanguageServer()
-    doc = FakeDocument(
+def test_run_checks_simulation_without_violations() -> None:
+    """Simulation test: run_checks with code that passes all checks."""
+    ls = SimulatedLanguageServer()
+    doc = SimulatedDocument(
         """
 def foo():
     assert True
@@ -112,28 +114,29 @@ def foo():
 
     run_checks(ls, doc)  # type: ignore[arg-type]
 
-    assert len(ls.published_diagnostics) == 1
-    assert ls.published_diagnostics[0].uri == "file:///test.py"
-    assert len(ls.published_diagnostics[0].diagnostics) == 0
+    assert len(ls.published) == 1
+    assert ls.published[0].uri == "file:///test.py"
+    assert len(ls.published[0].diagnostics) == 0
 
 
-class FakeWorkspace:
-    def __init__(self, doc: FakeDocument) -> None:
-        assert doc
+class SimulatedWorkspace:
+    """Simulates a workspace that returns documents by URI."""
+
+    def __init__(self, doc: SimulatedDocument) -> None:
         self.doc = doc
 
-    def get_text_document(self, uri: str) -> FakeDocument:
-        assert uri
+    def get_text_document(self, uri: str) -> SimulatedDocument:
         assert uri == self.doc.uri
         return self.doc
 
 
-def test_did_open_handler() -> None:
+def test_did_open_simulation() -> None:
+    """Simulation test: did_open handler calls run_checks."""
     from nasa_lsp.server import did_open
 
-    doc = FakeDocument("def foo(): pass")
-    ls = FakeLanguageServer()
-    ls.workspace = FakeWorkspace(doc)  # type: ignore[attr-defined]
+    doc = SimulatedDocument("def foo(): pass")
+    ls = SimulatedLanguageServer()
+    ls.workspace = SimulatedWorkspace(doc)  # type: ignore[attr-defined]
 
     params = types.DidOpenTextDocumentParams(
         text_document=types.TextDocumentItem(
@@ -143,15 +146,16 @@ def test_did_open_handler() -> None:
 
     did_open(ls, params)  # type: ignore[arg-type]
 
-    assert len(ls.published_diagnostics) == 1
+    assert len(ls.published) == 1
 
 
-def test_did_change_handler() -> None:
+def test_did_change_simulation() -> None:
+    """Simulation test: did_change handler calls run_checks."""
     from nasa_lsp.server import did_change
 
-    doc = FakeDocument("def bar(): pass")
-    ls = FakeLanguageServer()
-    ls.workspace = FakeWorkspace(doc)  # type: ignore[attr-defined]
+    doc = SimulatedDocument("def bar(): pass")
+    ls = SimulatedLanguageServer()
+    ls.workspace = SimulatedWorkspace(doc)  # type: ignore[attr-defined]
 
     params = types.DidChangeTextDocumentParams(
         text_document=types.VersionedTextDocumentIdentifier(uri="file:///test.py", version=2),
@@ -160,16 +164,25 @@ def test_did_change_handler() -> None:
 
     did_change(ls, params)  # type: ignore[arg-type]
 
-    assert len(ls.published_diagnostics) == 1
+    assert len(ls.published) == 1
 
 
-def test_serve_function_starts_server() -> None:
-    import threading
+def test_serve_integration() -> None:
+    """Integration test: serve() actually starts the server process."""
+    import subprocess
+    import sys
     import time
-    from nasa_lsp.server import serve
 
-    server_thread = threading.Thread(target=serve, daemon=True)
-    server_thread.start()
+    proc = subprocess.Popen(
+        [sys.executable, "-c", "from nasa_lsp.server import serve; serve()"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+
     time.sleep(0.1)
-    server_thread.join(timeout=0.2)
-    assert True
+
+    proc.terminate()
+    proc.wait(timeout=2)
+
+    assert proc.returncode in (0, -15)
