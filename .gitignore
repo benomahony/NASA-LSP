@@ -15,3 +15,7 @@ mutants/
 
 # Zensical build output
 site/
+
+# Coverage reports
+.coverage
+htmlcov/
