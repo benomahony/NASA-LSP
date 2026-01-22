@@ -12,9 +12,10 @@ from __future__ import annotations
 import ast
 import random
 import string
-from typing import Any
 
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from nasa_lsp.analyzer import analyze
 
@@ -23,70 +24,6 @@ FUZZ_SEED = 42
 
 # Set random seed at module level for reproducibility
 random.seed(FUZZ_SEED)
-
-# Try to import hypothesis for property-based testing
-try:
-    from hypothesis import given, settings
-    from hypothesis import strategies as st
-
-    HAS_HYPOTHESIS = True
-except ImportError:
-    # pyright: reportUnknownParameterType=false, reportExplicitAny=false
-    # pyright: reportAssignmentType=false, reportConstantRedefinition=false
-    # pyright: reportUnusedParameter=false, reportMissingParameterType=false
-    # pyright: reportUnusedImport=false, reportUnknownVariableType=false
-    # pyright: reportUnknownArgumentType=false
-    HAS_HYPOTHESIS = False  # type: ignore[assignment]
-
-    # Create dummy decorators if hypothesis is not available
-    # ruff: noqa: ANN201, ARG001, ANN401
-    def given(*args: Any, **kwargs: Any):  # type: ignore[misc]
-        """Dummy given decorator when hypothesis is not installed."""
-
-        def decorator(f: Any) -> Any:  # type: ignore[misc]
-            return pytest.mark.skip(reason="hypothesis not installed")(f)
-
-        return decorator
-
-    # ruff: noqa: ANN201, ARG001, ANN401
-    def settings(*args: Any, **kwargs: Any):  # type: ignore[misc]
-        """Dummy settings decorator when hypothesis is not installed."""
-
-        def decorator(f: Any) -> Any:  # type: ignore[misc]
-            return f
-
-        return decorator
-
-    class StrategiesStub:
-        """Dummy strategies class when hypothesis is not installed."""
-
-        # ruff: noqa: ANN401
-        @staticmethod
-        def text(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
-            """Dummy text strategy."""
-            return None
-
-        # ruff: noqa: ANN401
-        @staticmethod
-        def integers(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
-            """Dummy integers strategy."""
-            return None
-
-        # ruff: noqa: ANN401
-        @staticmethod
-        def lists(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
-            """Dummy lists strategy."""
-            return None
-
-        # ruff: noqa: ANN401
-        @staticmethod
-        def booleans(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
-            """Dummy booleans strategy."""
-            return None
-
-    # Alias to match hypothesis API
-    st = StrategiesStub  # type: ignore[assignment,misc]
-
 
 # ============================================================================
 # PROPERTY-BASED TESTS WITH HYPOTHESIS
@@ -164,7 +101,7 @@ def test_generated_function_with_n_assertions(n: int) -> None:
 @settings(max_examples=100)
 def test_multiple_function_definitions(func_names: list[str]) -> None:
     """Property: analyze should handle any number of function definitions."""
-    lines = []
+    lines: list[str] = []
     for name in func_names:
         lines.extend(
             [
@@ -331,7 +268,7 @@ def test_fuzz_multiple_random_functions() -> None:
     """Fuzz test: generate files with multiple random functions."""
     for _ in range(20):
         num_functions = random.randint(1, 20)
-        functions = []
+        functions: list[str] = []
 
         for _ in range(num_functions):
             func = generate_random_function(
@@ -389,10 +326,12 @@ def func():
     for _ in range(30):
         lines = base_code.split("\n")
         # Insert random comments
-        for _ in range(random.randint(1, 5)):
+        num_comments = random.randint(1, 5)
+        for _ in range(num_comments):
             pos = random.randint(0, len(lines))
             comment = f"# {generate_random_identifier()}"
-            lines.insert(pos, comment)
+            # Avoid LiteralString type issue with insert by rebuilding list
+            lines = [*lines[:pos], comment, *lines[pos:]]
 
         code = "\n".join(lines)
         result = analyze(code)
@@ -405,7 +344,7 @@ def test_fuzz_random_string_literals() -> None:
     """Fuzz test: functions with random string literals."""
     for _ in range(50):
         # Generate random strings
-        strings = []
+        strings: list[str] = []
         for _ in range(random.randint(1, 10)):
             # Random printable string
             s = "".join(random.choices(string.printable, k=random.randint(1, 50)))
@@ -427,7 +366,7 @@ def func_with_strings():
 def test_fuzz_random_numeric_literals() -> None:
     """Fuzz test: functions with random numeric literals."""
     for _ in range(50):
-        numbers = []
+        numbers: list[str] = []
         for _ in range(random.randint(1, 20)):
             num_type = random.choice(["int", "float", "complex", "hex", "oct", "bin"])
             if num_type == "int":
@@ -736,7 +675,7 @@ def test_fuzz_random_combinations() -> None:
     for _ in range(100):
         # Random function parameters
         num_functions = random.randint(1, 10)
-        functions = []
+        functions: list[str] = []
 
         for _ in range(num_functions):
             # Random characteristics

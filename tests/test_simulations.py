@@ -722,7 +722,7 @@ def test_analyze_directory_with_mixed_files() -> None:
 
         # Create clean file
         clean_file = tmp_path / "clean.py"
-        clean_file.write_text(
+        _ = clean_file.write_text(
             """
 def clean_function():
     assert True
@@ -733,7 +733,7 @@ def clean_function():
 
         # Create file with violations
         violations_file = tmp_path / "violations.py"
-        violations_file.write_text(
+        _ = violations_file.write_text(
             """
 def has_eval():
     assert True
@@ -750,7 +750,7 @@ def no_asserts():
         subdir.mkdir()
 
         sub_file = subdir / "sub.py"
-        sub_file.write_text(
+        _ = sub_file.write_text(
             """
 def recursive(n: int) -> int:
     assert n >= 0
@@ -774,7 +774,7 @@ def test_exclude_common_directories() -> None:
 
         # Create file in main directory
         main_file = tmp_path / "main.py"
-        main_file.write_text(
+        _ = main_file.write_text(
             """
 def bad():
     eval("test")
@@ -786,7 +786,7 @@ def bad():
             exc_dir = tmp_path / excluded_dir
             exc_dir.mkdir()
             exc_file = exc_dir / "test.py"
-            exc_file.write_text(
+            _ = exc_file.write_text(
                 """
 def bad():
     eval("test")
@@ -1120,8 +1120,9 @@ def terrible_function():
 """
     # Add many lines to also trigger NASA04
     lines = code.split("\n")
-    for i in range(65):
-        lines.insert(-1, f"    x{i} = {i}")
+    # Insert 65 lines before the closing line to exceed 60 line limit
+    extra_lines = [f"    x{i} = {i}" for i in range(65)]
+    lines = lines[:-1] + extra_lines + [lines[-1]]
     code = "\n".join(lines)
 
     result = analyze(code)
