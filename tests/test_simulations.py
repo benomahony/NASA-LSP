@@ -58,8 +58,7 @@ def test_large_file_with_1000_lines() -> None:
     # Add 10 functions with NASA04 violations (too long)
     for i in range(10):
         lines.extend([f"def too_long_{i}():"])
-        for j in range(65):  # 65 lines > 60 line limit
-            lines.append(f"    x{j} = {j}")
+        lines.extend([f"    x{j} = {j}" for j in range(65)])  # 65 lines > 60 line limit
         lines.append("")
 
     code = "\n".join(lines)
@@ -265,8 +264,7 @@ def test_function_with_exactly_60_lines() -> None:
     """Test boundary: function with exactly 60 lines should pass."""
     lines = ["def exactly_60_lines():"]
     # Add 59 more lines (60 total including def line)
-    for i in range(59):
-        lines.append(f"    x{i} = {i}")
+    lines.extend([f"    x{i} = {i}" for i in range(59)])
     code = "\n".join(lines)
     result = analyze(code)
 
@@ -279,8 +277,7 @@ def test_function_with_exactly_61_lines() -> None:
     """Test boundary: function with exactly 61 lines should fail."""
     lines = ["def exactly_61_lines():"]
     # Add 60 more lines (61 total including def line)
-    for i in range(60):
-        lines.append(f"    x{i} = {i}")
+    lines.extend([f"    x{i} = {i}" for i in range(60)])
     code = "\n".join(lines)
     result = analyze(code)
 
@@ -333,8 +330,7 @@ def long_line_function():
 def test_function_with_100_assertions() -> None:
     """Simulate a function with many assertions."""
     lines = ["def many_asserts():"]
-    for i in range(100):
-        lines.append(f"    assert {i} >= 0")
+    lines.extend([f"    assert {i} >= 0" for i in range(100)])
     lines.append("    return True")
 
     code = "\n".join(lines)
@@ -382,7 +378,7 @@ def mixed_indentation():
 def test_unicode_in_code() -> None:
     """Simulate unicode characters in function names and strings."""
     code = """
-def функция_с_кириллицей():
+def функция_с_кириллицей():  # noqa: RUF001
     assert True
     assert False
     text = "Hello 世界 🌍"

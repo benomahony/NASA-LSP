@@ -40,17 +40,18 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = [
-  "S311",    # pseudo-random generators (non-cryptographic random is fine for tests)
-  "PLR2004", # magic numbers (tests commonly use literal values)
-  "ANN",     # type annotations (not required for test functions)
-  "ARG",     # unused arguments (common in test fixtures and helpers)
-  "F841",    # unused variables (sometimes needed for test clarity)
-  "RUF001",  # ambiguous unicode (intentionally testing unicode)
-  "PERF401", # list comprehension performance (minor in tests)
-  "N801",    # class naming (dummy classes for fallback)
-  "BLE001",  # blind exception (needed for fuzzing robustness tests)
-  "FBT",     # boolean function arguments (common in test helpers)
-  "B007",    # loop control variable not used (common in range loops)
+  "S101",    # assert statements (tests use asserts extensively)
+  "S311",    # pseudo-random generators (deterministic seeds for reproducibility)
+  "PLR2004", # magic values in comparisons (common and clear in test assertions)
+]
+"tests/test_fuzzing.py" = [
+  "ARG004",  # unused static method arguments (API compatibility for hypothesis fallback stubs)
+  "BLE001",  # blind exception (intentionally testing robustness against any exception)
+  "FBT001",  # boolean positional arguments (test helper functions)
+  "FBT002",  # boolean default arguments (test helper functions)
+]
+"tests/test_simulations.py" = [
+  "RUF001",  # ambiguous unicode characters (intentionally testing unicode handling)
 ]
 
 [tool.basedpyright]

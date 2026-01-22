@@ -39,6 +39,7 @@ except ImportError:
     HAS_HYPOTHESIS = False  # type: ignore[assignment]
 
     # Create dummy decorators if hypothesis is not available
+    # ruff: noqa: ANN201, ARG001, ANN401
     def given(*args: Any, **kwargs: Any):  # type: ignore[misc]
         """Dummy given decorator when hypothesis is not installed."""
 
@@ -47,6 +48,7 @@ except ImportError:
 
         return decorator
 
+    # ruff: noqa: ANN201, ARG001, ANN401
     def settings(*args: Any, **kwargs: Any):  # type: ignore[misc]
         """Dummy settings decorator when hypothesis is not installed."""
 
@@ -55,28 +57,35 @@ except ImportError:
 
         return decorator
 
-    class st:  # type: ignore[no-redef]
+    class StrategiesStub:
         """Dummy strategies class when hypothesis is not installed."""
 
+        # ruff: noqa: ANN401
         @staticmethod
         def text(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
             """Dummy text strategy."""
             return None
 
+        # ruff: noqa: ANN401
         @staticmethod
         def integers(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
             """Dummy integers strategy."""
             return None
 
+        # ruff: noqa: ANN401
         @staticmethod
         def lists(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
             """Dummy lists strategy."""
             return None
 
+        # ruff: noqa: ANN401
         @staticmethod
         def booleans(*args: Any, **kwargs: Any) -> Any:  # type: ignore[misc]
             """Dummy booleans strategy."""
             return None
+
+    # Alias to match hypothesis API
+    st = StrategiesStub  # type: ignore[assignment,misc]
 
 
 # ============================================================================
@@ -114,8 +123,7 @@ def test_analyze_handles_printable_characters(code: str) -> None:
 def test_generated_function_with_n_lines(n: int) -> None:
     """Property: analyze should handle functions of any length."""
     lines = [f"def func_{n}():"]
-    for i in range(n):
-        lines.append(f"    x{i} = {i}")
+    lines.extend([f"    x{i} = {i}" for i in range(n)])
 
     code = "\n".join(lines)
     result = analyze(code)
@@ -134,8 +142,7 @@ def test_generated_function_with_n_lines(n: int) -> None:
 def test_generated_function_with_n_assertions(n: int) -> None:
     """Property: analyze should handle functions with any number of assertions."""
     lines = [f"def func_with_{n}_asserts():"]
-    for i in range(n):
-        lines.append(f"    assert {i} >= 0")
+    lines.extend([f"    assert {i} >= 0" for i in range(n)])
     lines.append("    return True")
 
     code = "\n".join(lines)
@@ -261,8 +268,7 @@ def generate_random_function(
     lines = [f"def {func_name}():"]
 
     # Add assertions first
-    for _ in range(num_assertions):
-        lines.append(f"    assert {random.choice(['True', 'False', '1 > 0', '0 < 1'])}")
+    lines.extend([f"    assert {random.choice(['True', 'False', '1 > 0', '0 < 1'])}" for _ in range(num_assertions)])
 
     # Add forbidden API if requested
     if include_forbidden_api:
@@ -383,7 +389,7 @@ def func():
     for _ in range(30):
         lines = base_code.split("\n")
         # Insert random comments
-        for i in range(random.randint(1, 5)):
+        for _ in range(random.randint(1, 5)):
             pos = random.randint(0, len(lines))
             comment = f"# {generate_random_identifier()}"
             lines.insert(pos, comment)
@@ -464,7 +470,7 @@ def test_fuzz_deeply_nested_code() -> None:
         lines.append("    assert False")
 
         indent = "    "
-        for i in range(depth):
+        for _ in range(depth):
             lines.append(f"{indent}if True:")
             indent += "    "
 
@@ -629,15 +635,15 @@ def func():
 
 def test_fuzz_very_large_file() -> None:
     """Fuzz test: extremely large file with many functions."""
-    functions = []
-
-    for i in range(1000):  # Generate 1000 functions
-        functions.append(f"""
+    functions = [
+        f"""
 def func_{i}():
     assert True
     assert {i} >= 0
     return {i}
-""")
+"""
+        for i in range(1000)  # Generate 1000 functions
+    ]
 
     code = "\n".join(functions)
     result = analyze(code)
@@ -651,8 +657,7 @@ def test_fuzz_very_long_single_function() -> None:
     lines = ["def very_long_function():"]
 
     # Generate 5000 lines
-    for i in range(5000):
-        lines.append(f"    x{i} = {i}")
+    lines.extend([f"    x{i} = {i}" for i in range(5000)])
 
     code = "\n".join(lines)
     result = analyze(code)
@@ -756,18 +761,8 @@ def test_fuzz_random_combinations() -> None:
         # Should never crash
         assert isinstance(result, list)
 
-        # Verify expected violations are present
-        codes = {d.code for d in result}
-
-        # If any function has eval, should have NASA01-A
-        if any("eval" in f or "exec" in f or "compile" in f for f in functions):
-            # Note: might not be detected if code is malformed
-            pass
-
-        # If any function has while True, should have NASA02
-        if any("while True" in f for f in functions):
-            # Note: might not be detected if code is malformed
-            pass
+        # Note: We don't verify specific violations here because randomly
+        # generated code might be malformed and not parse correctly
 
 
 def test_fuzz_stress_test() -> None:
