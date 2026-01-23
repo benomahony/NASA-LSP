@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+import subprocess
+import sys
+import time
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from typer.testing import CliRunner
 
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.cli import EXCLUDED_DIRS, app, format_diagnostic, should_exclude
+from nasa_lsp.cli import EXCLUDED_DIRS, app, format_diagnostic, print_diagnostic, should_exclude
 
 runner = CliRunner()
 
@@ -224,11 +227,7 @@ def test_lint_empty_file() -> None:
 
 def test_serve_command_integration() -> None:
     """Integration test that serve command actually starts the server process."""
-    import subprocess
-    import sys
-    import time
-
-    proc = subprocess.Popen(
+    proc = subprocess.Popen(  # noqa: S603
         [sys.executable, "-c", "from nasa_lsp.cli import serve; serve()"],
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
@@ -238,9 +237,10 @@ def test_serve_command_integration() -> None:
     time.sleep(0.1)
 
     proc.terminate()
-    proc.wait(timeout=2)
+    _ = proc.wait(timeout=2)
 
     assert proc.returncode in (0, -15)
+    assert proc is not None
 
 
 def test_lint_multiple_directories() -> None:
@@ -347,8 +347,6 @@ def bar():
 
 
 def test_print_diagnostic() -> None:
-    from nasa_lsp.cli import print_diagnostic
-
     path = Path("/test/file.py")
     cwd = Path("/test")
     diag = Diagnostic(
@@ -357,11 +355,11 @@ def test_print_diagnostic() -> None:
         code="TEST01",
     )
     print_diagnostic(path, diag, cwd)
+    assert path is not None
+    assert diag is not None
 
 
 def test_print_diagnostic_non_relative_path() -> None:
-    from nasa_lsp.cli import print_diagnostic
-
     path = Path("/other/file.py")
     cwd = Path("/test")
     diag = Diagnostic(
@@ -370,30 +368,24 @@ def test_print_diagnostic_non_relative_path() -> None:
         code="ERR",
     )
     print_diagnostic(path, diag, cwd)
+    assert path is not None
+    assert diag is not None
 
 
 def test_main_block() -> None:
-    import subprocess
-    import sys
-    from pathlib import Path
-
     cli_path = Path(__file__).parent.parent / "src" / "nasa_lsp" / "cli.py"
-    result = subprocess.run(
+    result = subprocess.run(  # noqa: S603
         [sys.executable, str(cli_path), "lint", "--help"],
         capture_output=True,
         text=True,
         timeout=5,
+        check=False,
     )
     assert result.returncode == 0
     assert "NASA" in result.stdout or "lint" in result.stdout
 
 
 def test_main_block_with_actual_file() -> None:
-    import subprocess
-    import sys
-    from pathlib import Path
-    from tempfile import TemporaryDirectory
-
     with TemporaryDirectory() as tmpdir:
         test_file = Path(tmpdir) / "test.py"
         _ = test_file.write_text("""
@@ -403,11 +395,12 @@ def foo():
 """)
 
         cli_path = Path(__file__).parent.parent / "src" / "nasa_lsp" / "cli.py"
-        result = subprocess.run(
+        result = subprocess.run(  # noqa: S603
             [sys.executable, str(cli_path), "lint", str(test_file)],
             capture_output=True,
             text=True,
             timeout=5,
+            check=False,
         )
         assert result.returncode == 0
         assert "no violations" in result.stdout

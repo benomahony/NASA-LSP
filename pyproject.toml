@@ -38,21 +38,9 @@ ignore = [
   "UP035",  # don't upgrade typing_extensions imports (for Python 3.11 compatibility)
 ]
 
-[tool.ruff.lint.per-file-ignores]
-"tests/**/*.py" = [
-  "PLC0415", # allow imports in test functions
-  "S603",    # allow subprocess calls in tests
-  "PLW1510", # allow subprocess without check argument
-  "SLF001",  # allow private member access in tests
-  "ANN202",  # allow missing return type annotations for local test helpers
-  "S110",    # allow try-except-pass in tests
-  "BLE001",  # allow catching Exception in tests
-]
-
 [tool.basedpyright]
 pythonVersion = "3.13"
 typeCheckingMode = "all"
-exclude = ["tests/**", ".venv/**", "**/__pycache__/**", "**/node_modules/**"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
