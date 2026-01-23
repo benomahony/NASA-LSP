@@ -39,6 +39,7 @@ repos:
         language: system
         types: [python]
         pass_filenames: true
+        exclude: ^tests/
 
       - id: mutmut
         name: mutmut

@@ -471,6 +471,11 @@ dev = [
     { name = "zensical" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "basedpyright" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "basedpyright", marker = "extra == 'dev'", specifier = ">=1.29" },
@@ -487,6 +492,9 @@ requires-dist = [
     { name = "zensical", marker = "extra == 'dev'", specifier = ">=0.0.17" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "basedpyright", specifier = ">=1.37.1" }]
 
 [[package]]
 name = "nodejs-wheel-binaries"
