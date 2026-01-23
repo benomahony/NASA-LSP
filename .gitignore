@@ -11,6 +11,7 @@ wheels/
 
 # Mutation testing
 mutants/
+.mutmut-cache
 .mutmut-cache/
 
 # Zensical build output
