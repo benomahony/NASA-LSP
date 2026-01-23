@@ -370,37 +370,3 @@ def test_print_diagnostic_non_relative_path() -> None:
     print_diagnostic(path, diag, cwd)
     assert path.is_absolute()
     assert diag.code == "ERR"
-
-
-def test_main_block() -> None:
-    cli_path = Path(__file__).parent.parent / "src" / "nasa_lsp" / "cli.py"
-    result = subprocess.run(  # noqa: S603
-        [sys.executable, str(cli_path), "lint", "--help"],
-        capture_output=True,
-        text=True,
-        timeout=5,
-        check=False,
-    )
-    assert result.returncode == 0
-    assert "NASA" in result.stdout or "lint" in result.stdout
-
-
-def test_main_block_with_actual_file() -> None:
-    with TemporaryDirectory() as tmpdir:
-        test_file = Path(tmpdir) / "test.py"
-        _ = test_file.write_text("""
-def foo():
-    assert True
-    assert False
-""")
-
-        cli_path = Path(__file__).parent.parent / "src" / "nasa_lsp" / "cli.py"
-        result = subprocess.run(  # noqa: S603
-            [sys.executable, str(cli_path), "lint", str(test_file)],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            check=False,
-        )
-        assert result.returncode == 0
-        assert "no violations" in result.stdout

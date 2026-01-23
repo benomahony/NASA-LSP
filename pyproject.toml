@@ -40,6 +40,7 @@ ignore = [
 [tool.basedpyright]
 pythonVersion = "3.14"
 typeCheckingMode = "all"
+exclude = ["mutants"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
