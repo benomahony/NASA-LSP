@@ -1,0 +1,72 @@
+[project]
+name = "nasa-lsp"
+version = "0.1.6"
+description = "A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["dead>=2.1.0", "pygls>=2.0.0", "typer>=0.21.1"]
+
+[project.optional-dependencies]
+dev = [
+  "basedpyright>=1.29",
+  "bump-my-version>=0.31",
+  "mutmut>=3.2",
+  "prek>=0.2.30",
+  "pytest-cov>=7.0.0",
+  "pytest>=8.0",
+  "ruff>=0.11",
+  "zensical>=0.0.17",
+  "dead>=2.1.0",
+]
+[tool.uv]
+package = true
+
+[project.scripts]
+nasa = "nasa_lsp.cli:app"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+  "D",      # pydocstyle
+  "COM812", # trailing-comma (conflicts with formatter)
+  "ISC001", # single-line-implicit-string-concatenation (conflicts with formatter)
+  "S101",   # assert (we use asserts intentionally for NASA rules)
+]
+
+[tool.basedpyright]
+pythonVersion = "3.12"
+typeCheckingMode = "all"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+norecursedirs = ["mutants", ".venv", "dist", "build"]
+
+[tool.coverage.run]
+source = ["src/nasa_lsp"]
+branch = true
+omit = ["src/nasa_lsp/__init__.py"]
+
+[tool.coverage.report]
+fail_under = 90
+exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", "assert False"]
+
+[tool.bumpversion]
+current_version = "0.1.6"
+commit = true
+tag = true
+tag_name = "v{new_version}"
+message = "Bump version: {current_version} → {new_version}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[dependency-groups]
+dev = [
+    "basedpyright>=1.37.1",
+]
