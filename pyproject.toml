@@ -38,7 +38,7 @@ ignore = [
 ]
 
 [tool.basedpyright]
-pythonVersion = "3.12"
+pythonVersion = "3.14"
 typeCheckingMode = "all"
 
 [tool.pytest.ini_options]
@@ -65,8 +65,3 @@ message = "Bump version: {current_version} → {new_version}"
 filename = "pyproject.toml"
 search = 'version = "{current_version}"'
 replace = 'version = "{new_version}"'
-
-[dependency-groups]
-dev = [
-    "basedpyright>=1.37.1",
-]
