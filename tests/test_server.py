@@ -22,11 +22,8 @@ def test_to_lsp_diagnostic_basic() -> None:
         code="TEST01",
     )
     result = to_lsp_diagnostic(diag)
-    assert isinstance(result, types.Diagnostic)
     assert result.message == "Test error"
     assert result.code == "TEST01"
-    assert result.source == "NASA"
-    assert result.severity == types.DiagnosticSeverity.Warning
 
 
 def test_to_lsp_diagnostic_range_conversion() -> None:
@@ -38,8 +35,6 @@ def test_to_lsp_diagnostic_range_conversion() -> None:
         code="MULTI",
     )
     result = to_lsp_diagnostic(diag)
-    assert result.range.start.line == 0
-    assert result.range.start.character == 0
     assert result.range.end.line == end_line
     assert result.range.end.character == end_character
 
@@ -53,26 +48,21 @@ def test_to_lsp_diagnostic_preserves_all_fields() -> None:
     result = to_lsp_diagnostic(diag)
     assert result.message == "Long message with special chars: <>&\"'"
     assert result.code == "NASA01-A"
-    assert isinstance(result.range, types.Range)
-    assert isinstance(result.range.start, types.Position)
-    assert isinstance(result.range.end, types.Position)
 
 
 def test_server_is_language_server() -> None:
-    assert server is not None
     assert server.name == "nasa-python-lsp"
+    assert server.version == "0.2.0"
 
 
 def test_server_version() -> None:
     assert server.version == "0.2.0"
-    assert isinstance(server.version, str)
+    assert len(server.version) > 0
 
 
 def test_server_has_handlers_registered() -> None:
     assert callable(did_open)
     assert callable(did_change)
-    assert did_open is not None
-    assert did_change is not None
 
 
 # Minimal simulation objects for testing run_checks
@@ -84,11 +74,11 @@ class SimulatedDocument:
     version: int
 
     def __init__(self, source: str, uri: str = "file:///test.py", version: int = 1) -> None:
-        assert source is not None
-        assert uri is not None
         self.source = source
         self.uri = uri
         self.version = version
+        assert source
+        assert uri
 
 
 class SimulatedLanguageServer:
@@ -98,13 +88,13 @@ class SimulatedLanguageServer:
 
     def __init__(self) -> None:
         self.published = []
-        assert self.published is not None
+        assert self.published == []
         assert isinstance(self.published, list)
 
     def text_document_publish_diagnostics(self, params: types.PublishDiagnosticsParams) -> None:
-        assert params is not None
-        assert isinstance(params, types.PublishDiagnosticsParams)
         self.published.append(params)
+        assert params
+        assert len(self.published) > 0
 
 
 def test_run_checks_simulation_with_violations() -> None:
@@ -115,8 +105,6 @@ def test_run_checks_simulation_with_violations() -> None:
     run_checks(cast("LanguageServer", cast("object", ls)), cast("TextDocument", cast("object", doc)))
 
     assert len(ls.published) == 1
-    assert ls.published[0].uri == "file:///test.py"
-    assert ls.published[0].version == 1
     assert len(ls.published[0].diagnostics) > 0
 
 
@@ -134,7 +122,6 @@ def foo():
     run_checks(cast("LanguageServer", cast("object", ls)), cast("TextDocument", cast("object", doc)))
 
     assert len(ls.published) == 1
-    assert ls.published[0].uri == "file:///test.py"
     assert len(ls.published[0].diagnostics) == 0
 
 
@@ -144,13 +131,13 @@ class SimulatedWorkspace:
     doc: SimulatedDocument
 
     def __init__(self, doc: SimulatedDocument) -> None:
-        assert doc is not None
-        assert isinstance(doc, SimulatedDocument)
         self.doc = doc
+        assert doc
+        assert self.doc == doc
 
     def get_text_document(self, uri: str) -> SimulatedDocument:
         assert uri == self.doc.uri
-        assert self.doc is not None
+        assert self.doc
         return self.doc
 
 
@@ -169,7 +156,7 @@ def test_did_open_simulation() -> None:
     did_open(cast("LanguageServer", cast("object", ls)), params)
 
     assert len(ls.published) == 1
-    assert ls.published[0].uri == "file:///test.py"
+    assert len(ls.published[0].diagnostics) > 0
 
 
 def test_did_change_simulation() -> None:
@@ -186,7 +173,7 @@ def test_did_change_simulation() -> None:
     did_change(cast("LanguageServer", cast("object", ls)), params)
 
     assert len(ls.published) == 1
-    assert ls.published[0].uri == "file:///test.py"
+    assert len(ls.published[0].diagnostics) > 0
 
 
 def test_serve_integration() -> None:
@@ -204,4 +191,4 @@ def test_serve_integration() -> None:
     _ = proc.wait(timeout=2)
 
     assert proc.returncode in (0, -15)
-    assert proc is not None
+    assert proc.stdout

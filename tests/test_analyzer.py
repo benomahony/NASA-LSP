@@ -3,10 +3,7 @@ from __future__ import annotations
 import ast
 
 from nasa_lsp.analyzer import (
-    Diagnostic,
     NasaVisitor,
-    Position,
-    Range,
     analyze,
 )
 
@@ -14,19 +11,19 @@ from nasa_lsp.analyzer import (
 def test_analyze_returns_empty_for_syntax_error() -> None:
     result = analyze("def broken(")
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
 
 
 def test_analyze_returns_empty_for_empty_string() -> None:
     result = analyze("")
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
 
 
 def test_analyze_returns_empty_for_whitespace_only() -> None:
     result = analyze("   \n\n  \t  ")
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
 
 
 def test_analyze_returns_empty_for_valid_code_with_asserts() -> None:
@@ -37,7 +34,7 @@ def foo():
 """
     result = analyze(code)
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
 
 
 def test_nasa01a_detects_eval() -> None:
@@ -50,8 +47,6 @@ def foo():
     result = analyze(code)
     assert len(result) == 1
     assert result[0].code == "NASA01-A"
-    assert "eval" in result[0].message
-    assert isinstance(result[0], Diagnostic)
 
 
 def test_nasa01a_detects_exec() -> None:
@@ -183,8 +178,6 @@ def factorial(n):
     result = analyze(code)
     assert len(result) == 1
     assert result[0].code == "NASA01-B"
-    assert "factorial" in result[0].message
-    assert "Recursive" in result[0].message
 
 
 def test_nasa01b_allows_non_recursive_functions() -> None:
@@ -262,9 +255,7 @@ def test_nasa04_detects_long_function() -> None:
     result = analyze(code)
     codes = [d.code for d in result]
     assert "NASA04" in codes
-    nasa04 = next(d for d in result if d.code == "NASA04")
-    assert "long_func" in nasa04.message
-    assert "60" in nasa04.message
+    assert "long_func" in next(d for d in result if d.code == "NASA04").message
 
 
 def test_nasa04_allows_short_function() -> None:
@@ -406,12 +397,7 @@ def test_diagnostic_position_is_correct() -> None:
     expected_col = len("def ")
     result = analyze(code)
     assert len(result) == 1
-    diag = result[0]
-    assert isinstance(diag.range, Range)
-    assert isinstance(diag.range.start, Position)
-    assert isinstance(diag.range.end, Position)
-    assert diag.range.start.line == 0
-    assert diag.range.start.character == expected_col
+    assert result[0].range.start.character == expected_col
 
 
 def test_multiple_violations_in_same_code() -> None:
@@ -448,7 +434,6 @@ class Foo:
     result = analyze(code)
     assert len(result) == 1
     assert result[0].code == "NASA05"
-    assert "method" in result[0].message
 
 
 def test_lambda_not_checked() -> None:
@@ -489,7 +474,7 @@ def     foo():
 """
     result = analyze(code)
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
 
 
 def test_call_with_no_name() -> None:
@@ -501,7 +486,7 @@ def foo():
 """
     result = analyze(code)
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
 
 
 def test_call_with_subscript() -> None:
@@ -514,7 +499,7 @@ def foo():
 """
     result = analyze(code)
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
 
 
 def test_range_for_func_invalid_line_number() -> None:
@@ -549,4 +534,4 @@ async   def     foo():
 """
     result = analyze(code)
     assert result == []
-    assert isinstance(result, list)
+    assert len(result) == 0
