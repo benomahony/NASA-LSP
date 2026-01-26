@@ -13,10 +13,13 @@ wheels/
 mutants/
 .mutmut-cache/
 
-# Coverage
+# Test coverage
 .coverage
+.coverage.*
 htmlcov/
 
+# Hypothesis
+.hypothesis/
 # Zensical build output
 site/
 

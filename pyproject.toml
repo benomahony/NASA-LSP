@@ -10,6 +10,7 @@ dependencies = ["dead>=2.1.0", "pygls>=2.0.0", "typer>=0.21.1"]
 dev = [
   "basedpyright>=1.29",
   "bump-my-version>=0.31",
+  "hypothesis>=6.0.0",
   "mutmut>=3.2",
   "prek>=0.2.30",
   "pytest-cov>=7.0.0",
@@ -35,6 +36,21 @@ ignore = [
   "COM812", # trailing-comma (conflicts with formatter)
   "ISC001", # single-line-implicit-string-concatenation (conflicts with formatter)
   "S101",   # assert (we use asserts intentionally for NASA rules)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+  "S101",    # assert statements (tests use asserts extensively)
+  "S311",    # pseudo-random generators (deterministic seeds for reproducibility)
+  "PLR2004", # magic values in comparisons (common and clear in test assertions)
+]
+"tests/test_fuzzing.py" = [
+  "BLE001",  # blind exception (intentionally testing robustness against any exception)
+  "FBT001",  # boolean positional arguments (test helper functions)
+  "FBT002",  # boolean default arguments (test helper functions)
+]
+"tests/test_simulations.py" = [
+  "RUF001",  # ambiguous unicode characters (intentionally testing unicode handling)
 ]
 
 [tool.basedpyright]
