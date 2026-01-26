@@ -35,11 +35,11 @@ random.seed(FUZZ_SEED)
 def test_analyze_never_crashes_on_random_strings(code: str) -> None:
     """Property: analyze should never crash on any string input."""
     try:
-        result = analyze(code)
-        # Should always return a list
-        assert isinstance(result, list), "analyze() must return a list"
+        diagnostics, _ = analyze(code)
+        # Should always return diagnostics list
+        assert isinstance(diagnostics, list), "analyze() must return diagnostics list"
         # All items should be Diagnostic objects (duck-typed check)
-        for diagnostic in result:
+        for diagnostic in diagnostics:
             assert hasattr(diagnostic, "range"), "Diagnostic missing 'range' attribute"
             assert hasattr(diagnostic, "message"), "Diagnostic missing 'message' attribute"
             assert hasattr(diagnostic, "code"), "Diagnostic missing 'code' attribute"
@@ -51,9 +51,9 @@ def test_analyze_never_crashes_on_random_strings(code: str) -> None:
 @settings(max_examples=200)
 def test_analyze_handles_printable_characters(code: str) -> None:
     """Property: analyze should handle all printable ASCII characters."""
-    result = analyze(code)
-    assert isinstance(result, list), "analyze() must return a list"
-    assert all(hasattr(d, "code") for d in result), "All diagnostics must have a code"
+    diagnostics, _ = analyze(code)
+    assert isinstance(diagnostics, list), "analyze() must return a list"
+    assert all(hasattr(d, "code") for d in diagnostics), "All diagnostics must have a code"
 
 
 @given(st.integers(min_value=0, max_value=1000))
@@ -64,13 +64,13 @@ def test_generated_function_with_n_lines(n: int) -> None:
     lines.extend([f"    x{i} = {i}" for i in range(n)])
 
     code = "\n".join(lines)
-    result = analyze(code)
+    diagnostics, _ = analyze(code)
 
     # Should always return a list
-    assert isinstance(result, list), "analyze() must return a list"
+    assert isinstance(diagnostics, list), "analyze() must return a list"
 
     # If n > 60, should have NASA04 violation
-    nasa04_violations = [d for d in result if d.code == "NASA04"]
+    nasa04_violations = [d for d in diagnostics if d.code == "NASA04"]
     if n > 60:
         assert len(nasa04_violations) > 0, f"Expected NASA04 violation for {n}-line function"
     else:
@@ -87,12 +87,12 @@ def test_generated_function_with_n_assertions(n: int) -> None:
     lines.append("    return True")
 
     code = "\n".join(lines)
-    result = analyze(code)
+    diagnostics, _ = analyze(code)
 
-    assert isinstance(result, list), "analyze() must return a list"
+    assert isinstance(diagnostics, list), "analyze() must return a list"
 
     # If n < 2, should have NASA05 violation
-    nasa05_violations = [d for d in result if d.code == "NASA05"]
+    nasa05_violations = [d for d in diagnostics if d.code == "NASA05"]
     if n < 2:
         assert len(nasa05_violations) > 0, f"Expected NASA05 violation for {n} assertions"
     else:
@@ -117,12 +117,12 @@ def test_multiple_function_definitions(func_names: list[str]) -> None:
         )
 
     code = "\n".join(lines)
-    result = analyze(code)
+    diagnostics, _ = analyze(code)
 
     # Should always return a list
-    assert isinstance(result, list), "analyze() must return a list"
+    assert isinstance(diagnostics, list), "analyze() must return a list"
     # Should not crash with multiple functions
-    assert len(result) >= 0, "Should return diagnostics for multiple functions"
+    assert len(diagnostics) >= 0, "Should return diagnostics for multiple functions"
 
 
 @given(st.booleans())
@@ -146,8 +146,8 @@ def func():
         pass
 """
 
-    result = analyze(code)
-    nasa02_violations = [d for d in result if d.code == "NASA02"]
+    diagnostics, _ = analyze(code)
+    nasa02_violations = [d for d in diagnostics if d.code == "NASA02"]
 
     if has_while_true:
         assert len(nasa02_violations) > 0, "Expected NASA02 violation for 'while True'"
@@ -270,9 +270,9 @@ def func():
             pos = random.randint(0, len(modified) - 1)
             ws = random.choice(whitespace_chars)
             modified = modified[:pos] + ws + modified[pos:]
-        result = analyze(modified)
-        assert isinstance(result, list), "Must return list for whitespace variations"
-        assert len(result) >= 0, "Whitespace variations should be processed"
+        diagnostics, _ = analyze(modified)
+        assert isinstance(diagnostics, list), "Must return list for whitespace variations"
+        assert len(diagnostics) >= 0, "Whitespace variations should be processed"
 
 
 def test_fuzz_comment_variations() -> None:
@@ -291,9 +291,9 @@ def func():
             comment = f"# {generate_random_identifier()}"
             lines = [*lines[:pos], comment, *lines[pos:]]
         code = "\n".join(lines)
-        result = analyze(code)
-        assert isinstance(result, list), "Must return list for comment variations"
-        assert all(hasattr(d, "code") for d in result), "All diagnostics must be well-formed"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), "Must return list for comment variations"
+        assert all(hasattr(d, "code") for d in diagnostics), "All diagnostics must be well-formed"
 
 
 def test_fuzz_unicode_identifiers() -> None:
@@ -306,9 +306,9 @@ def {name}():
     assert False
     return 42
 """
-        result = analyze(code)
-        assert isinstance(result, list), f"Must return list for unicode name: {name}"
-        assert len(result) >= 0, "Unicode identifiers should be processed"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), f"Must return list for unicode name: {name}"
+        assert len(diagnostics) >= 0, "Unicode identifiers should be processed"
 
 
 def test_fuzz_mixed_quote_styles() -> None:
@@ -323,9 +323,9 @@ def func():
     s = {quote_type}{content}{quote_type}
     return s
 """
-        result = analyze(code)
-        assert isinstance(result, list), "Must return list for mixed quotes"
-        assert len(result) >= 0, "Quote styles should be handled"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), "Must return list for mixed quotes"
+        assert len(diagnostics) >= 0, "Quote styles should be handled"
 
 
 def test_fuzz_string_literals() -> None:
@@ -343,9 +343,9 @@ def func_with_strings():
 {chr(10).join(strings)}
     return None
 """
-        result = analyze(code)
-        assert isinstance(result, list), "Must return list for string literals"
-        assert len(result) >= 0, "String literals should be processed"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), "Must return list for string literals"
+        assert len(diagnostics) >= 0, "String literals should be processed"
 
 
 def test_fuzz_numeric_literals() -> None:
@@ -374,9 +374,9 @@ def func_with_numbers():
 {chr(10).join(numbers)}
     return None
 """
-        result = analyze(code)
-        assert isinstance(result, list), "Must return list for numeric literals"
-        assert len(result) >= 0, "Numeric literals should be processed"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), "Must return list for numeric literals"
+        assert len(diagnostics) >= 0, "Numeric literals should be processed"
 
 
 # ============================================================================
@@ -405,9 +405,9 @@ def test_fuzz_code_structure(structure_type: str, test_values: list[int]) -> Non
                 indent += "    "
             lines.append(f"{indent}pass")
             code = "\n".join(lines)
-            result = analyze(code)
-            assert isinstance(result, list), f"Must handle depth {depth}"
-            assert len(result) >= 0, "Deep nesting should be processed"
+            diagnostics, _ = analyze(code)
+            assert isinstance(diagnostics, list), f"Must handle depth {depth}"
+            assert len(diagnostics) >= 0, "Deep nesting should be processed"
 
     elif structure_type == "function_name_length":
         for length in test_values:
@@ -418,9 +418,9 @@ def {func_name}():
     assert False
     return 42
 """
-            result = analyze(code)
-            assert isinstance(result, list), f"Must handle name length {length}"
-            assert len(result) >= 0, "Long names should be processed"
+            diagnostics, _ = analyze(code)
+            assert isinstance(diagnostics, list), f"Must handle name length {length}"
+            assert len(diagnostics) >= 0, "Long names should be processed"
 
     elif structure_type == "parameter_count":
         for num_params in test_values:
@@ -432,9 +432,9 @@ def func({param_list}):
     assert False
     return None
 """
-            result = analyze(code)
-            assert isinstance(result, list), f"Must handle {num_params} parameters"
-            assert len(result) >= 0, "Many parameters should be processed"
+            diagnostics, _ = analyze(code)
+            assert isinstance(diagnostics, list), f"Must handle {num_params} parameters"
+            assert len(diagnostics) >= 0, "Many parameters should be processed"
 
 
 # ============================================================================
@@ -459,9 +459,9 @@ def func({param_list}):
 )
 def test_fuzz_malformed_syntax(malformed_pattern: str) -> None:
     """Fuzz test: malformed syntax should be handled gracefully."""
-    result = analyze(malformed_pattern)
+    diagnostics, _ = analyze(malformed_pattern)
     # Should handle gracefully (return empty or minimal list for syntax errors)
-    assert isinstance(result, list), "Must return list even for malformed syntax"
+    assert isinstance(diagnostics, list), "Must return list even for malformed syntax"
     # Should not crash - that's the key property
     assert True, "Malformed syntax handled without crashing"
 
@@ -482,8 +482,8 @@ def func():
         pos = random.randint(0, len(base_code) - 1)
         char = random.choice(string.printable)
         modified = base_code[:pos] + char + base_code[pos:]
-        result = analyze(modified)
-        assert isinstance(result, list), "Character injection must not crash"
+        diagnostics, _ = analyze(modified)
+        assert isinstance(diagnostics, list), "Character injection must not crash"
 
     # Test line deletion
     for _ in range(30):
@@ -492,9 +492,9 @@ def func():
             if len(lines) > 1:
                 del lines[random.randint(0, len(lines) - 1)]
         code = "\n".join(lines)
-        result = analyze(code)
-        assert isinstance(result, list), "Line deletion must not crash"
-        assert len(result) >= 0, "Should process mutated code"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), "Line deletion must not crash"
+        assert len(diagnostics) >= 0, "Should process mutated code"
 
 
 # ============================================================================
@@ -523,17 +523,17 @@ def func_{i}():
             for i in range(scale_value)
         ]
         code = "\n".join(functions)
-        result = analyze(code)
-        assert isinstance(result, list), f"Must handle {scale_value} functions"
-        assert len(result) >= 0, "Large files should complete"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), f"Must handle {scale_value} functions"
+        assert len(diagnostics) >= 0, "Large files should complete"
 
     elif scale_type == "very_long_function":
         lines = ["def very_long_function():"]
         lines.extend([f"    x{i} = {i}" for i in range(scale_value)])
         code = "\n".join(lines)
-        result = analyze(code)
-        assert isinstance(result, list), f"Must handle {scale_value}-line function"
-        nasa04_violations = [d for d in result if d.code == "NASA04"]
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), f"Must handle {scale_value}-line function"
+        nasa04_violations = [d for d in diagnostics if d.code == "NASA04"]
         assert len(nasa04_violations) > 0, "Should detect NASA04 for very long function"
 
     elif scale_type == "very_long_lines":
@@ -545,9 +545,9 @@ def long_line():
     s = "{long_string}"
     return s
 """
-        result = analyze(code)
-        assert isinstance(result, list), f"Must handle {scale_value}-char lines"
-        assert len(result) >= 0, "Very long lines should be processed"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), f"Must handle {scale_value}-char lines"
+        assert len(diagnostics) >= 0, "Very long lines should be processed"
 
 
 # ============================================================================
@@ -589,12 +589,12 @@ def test_fuzz_nasa_violation_detection(
             include_while_true=bool(config["include_while_true"]),
             include_recursion=bool(config["include_recursion"]),
         )
-        result = analyze(code)
-        assert isinstance(result, list), "Must return list for violation detection"
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list), "Must return list for violation detection"
 
         # Check if expected violations are detected (if code is valid)
-        if result:  # Only check if analyze found something
-            detected_codes = {d.code for d in result}
+        if diagnostics:  # Only check if analyze found something
+            detected_codes = {d.code for d in diagnostics}
             if any(expected_code in detected_codes for expected_code in expected_codes):
                 violations_detected += 1
 
@@ -634,8 +634,8 @@ def test_fuzz_random_combinations_stress() -> None:
 
         code = "\n\n".join(functions)
         try:
-            result = analyze(code)
-            assert isinstance(result, list)
+            diagnostics, _ = analyze(code)
+            assert isinstance(diagnostics, list)
             combinations_tested += 1
         except Exception:
             crashes += 1
@@ -670,8 +670,8 @@ def valid():
     return 42
 """
 
-        result = analyze(code)
-        assert isinstance(result, list)
+        diagnostics, _ = analyze(code)
+        assert isinstance(diagnostics, list)
         success_count += 1
 
     assert success_count == total_tests, f"Only completed {success_count}/{total_tests} stress tests"
@@ -712,8 +712,8 @@ def has_eval():
         try:
             tree = ast.parse(code)
             unparsed = ast.unparse(tree)
-            result = analyze(unparsed)
-            assert isinstance(result, list), "Round-tripped code must analyze successfully"
+            diagnostics, _ = analyze(unparsed)
+            assert isinstance(diagnostics, list), "Round-tripped code must analyze successfully"
             successful_roundtrips += 1
         except SyntaxError:
             # Some code might not round-trip perfectly - that's acceptable
