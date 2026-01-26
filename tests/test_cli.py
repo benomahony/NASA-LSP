@@ -220,3 +220,92 @@ def test_lint_empty_file() -> None:
         result = runner.invoke(app, ["lint", str(empty_file)])
         assert result.exit_code == 0
         assert "no violations" in result.stdout
+
+
+def test_stats_no_args() -> None:
+    result = runner.invoke(app, ["stats"])
+    assert result.exit_code == 0
+    assert "NASA Function Audit" in result.stdout
+
+
+def test_stats_single_file() -> None:
+    with TemporaryDirectory() as tmpdir:
+        test_file = Path(tmpdir) / "test.py"
+        _ = test_file.write_text("""
+def foo():
+    assert True
+    assert False
+    return 1
+
+def bar():
+    assert True
+    return 2
+""")
+        result = runner.invoke(app, ["stats", str(test_file)])
+        assert result.exit_code == 0
+        assert "NASA Function Audit" in result.stdout
+        assert "foo" in result.stdout
+        assert "bar" in result.stdout
+
+
+def test_stats_directory() -> None:
+    with TemporaryDirectory() as tmpdir:
+        test_file = Path(tmpdir) / "test.py"
+        _ = test_file.write_text("""
+def example():
+    assert True
+    assert False
+""")
+        result = runner.invoke(app, ["stats", str(tmpdir)])
+        assert result.exit_code == 0
+        assert "example" in result.stdout
+
+
+def test_stats_excludes_venv() -> None:
+    with TemporaryDirectory() as tmpdir:
+        venv_dir = Path(tmpdir) / ".venv" / "lib"
+        venv_dir.mkdir(parents=True)
+        venv_file = venv_dir / "bad.py"
+        _ = venv_file.write_text("def foo(): pass")
+        result = runner.invoke(app, ["stats", str(tmpdir)])
+        assert result.exit_code == 0
+        assert ".venv" not in result.stdout
+
+
+def test_stats_multiple_files() -> None:
+    with TemporaryDirectory() as tmpdir:
+        file1 = Path(tmpdir) / "file1.py"
+        file2 = Path(tmpdir) / "file2.py"
+        _ = file1.write_text("def func1(): assert True; assert False")
+        _ = file2.write_text("def func2(): assert True; assert False")
+        result = runner.invoke(app, ["stats", str(file1), str(file2)])
+        assert result.exit_code == 0
+        assert "func1" in result.stdout
+        assert "func2" in result.stdout
+
+
+def test_stats_shows_line_counts() -> None:
+    with TemporaryDirectory() as tmpdir:
+        test_file = Path(tmpdir) / "test.py"
+        _ = test_file.write_text("""
+def short():
+    assert True
+    assert False
+    return 1
+""")
+        result = runner.invoke(app, ["stats", str(test_file)])
+        assert result.exit_code == 0
+        assert "short" in result.stdout
+
+
+def test_stats_empty_directory() -> None:
+    with TemporaryDirectory() as tmpdir:
+        result = runner.invoke(app, ["stats", str(tmpdir)])
+        assert result.exit_code == 0
+        assert "NASA Function Audit" in result.stdout
+
+
+def test_serve_command_imports() -> None:
+    result = runner.invoke(app, ["serve", "--help"])
+    assert result.exit_code == 0
+    assert "Language Server Protocol" in result.stdout

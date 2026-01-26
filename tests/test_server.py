@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from lsprotocol import types
+from pygls.lsp.server import LanguageServer
+from pygls.workspace import TextDocument
 
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.server import server, to_lsp_diagnostic
+from nasa_lsp.server import run_checks, server, to_lsp_diagnostic
+
+CLEAN_CODE_VERSION = 2
 
 
 def test_to_lsp_diagnostic_basic() -> None:
@@ -57,3 +61,74 @@ def test_server_is_language_server() -> None:
 def test_server_version() -> None:
     assert server.version == "0.2.0"
     assert isinstance(server.version, str)
+
+
+def test_run_checks_with_violations() -> None:
+    ls = LanguageServer("test", "0.1")
+    doc = TextDocument(uri="file:///test.py", source="def foo(): pass", version=1)
+
+    published_diagnostics = None
+
+    def capture_diagnostics(params: types.PublishDiagnosticsParams) -> None:
+        assert params is not None
+        assert isinstance(params, types.PublishDiagnosticsParams)
+        nonlocal published_diagnostics
+        published_diagnostics = params
+
+    ls.text_document_publish_diagnostics = capture_diagnostics
+
+    run_checks(ls, doc)
+
+    assert published_diagnostics is not None
+    assert isinstance(published_diagnostics, types.PublishDiagnosticsParams)
+    assert published_diagnostics.uri == "file:///test.py"
+    assert published_diagnostics.version == 1
+    assert len(published_diagnostics.diagnostics) > 0
+
+
+def test_run_checks_with_clean_code() -> None:
+    ls = LanguageServer("test", "0.1")
+    clean_source = """
+def foo():
+    assert True
+    assert False
+    return 1
+"""
+    doc = TextDocument(uri="file:///clean.py", source=clean_source, version=CLEAN_CODE_VERSION)
+
+    published_diagnostics = None
+
+    def capture_diagnostics(params: types.PublishDiagnosticsParams) -> None:
+        assert params is not None
+        assert isinstance(params, types.PublishDiagnosticsParams)
+        nonlocal published_diagnostics
+        published_diagnostics = params
+
+    ls.text_document_publish_diagnostics = capture_diagnostics
+
+    run_checks(ls, doc)
+
+    assert published_diagnostics is not None
+    assert published_diagnostics.uri == "file:///clean.py"
+    assert published_diagnostics.version == CLEAN_CODE_VERSION
+    assert len(published_diagnostics.diagnostics) == 0
+
+
+def test_run_checks_with_syntax_error() -> None:
+    ls = LanguageServer("test", "0.1")
+    doc = TextDocument(uri="file:///broken.py", source="def broken(", version=1)
+
+    published_diagnostics = None
+
+    def capture_diagnostics(params: types.PublishDiagnosticsParams) -> None:
+        assert params is not None
+        assert isinstance(params, types.PublishDiagnosticsParams)
+        nonlocal published_diagnostics
+        published_diagnostics = params
+
+    ls.text_document_publish_diagnostics = capture_diagnostics
+
+    run_checks(ls, doc)
+
+    assert published_diagnostics is not None
+    assert len(published_diagnostics.diagnostics) == 0
