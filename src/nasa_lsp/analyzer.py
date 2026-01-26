@@ -27,6 +27,14 @@ class Diagnostic:
     code: str
 
 
+@dataclass
+class FunctionStat:
+    name: str
+    line_start: int
+    line_count: int
+    assert_count: int
+
+
 class NasaVisitor(ast.NodeVisitor):
     def __init__(self, text: str) -> None:
         assert text
@@ -34,6 +42,7 @@ class NasaVisitor(ast.NodeVisitor):
         self.text: str = text
         self.lines: list[str] = text.splitlines()
         self.diagnostics: list[Diagnostic] = []
+        self.stats: list[FunctionStat] = []
 
     @staticmethod
     def _pos(lineno: int, col: int) -> Position:
@@ -154,6 +163,11 @@ class NasaVisitor(ast.NodeVisitor):
         assert node.end_lineno is not None
         func_name_range = self._range_for_func_name(node)
 
+        # Statistics
+        line_count = node.end_lineno - node.lineno + 1
+        assert_count = self._count_asserts(node)
+        self.stats.append(FunctionStat(func_name, node.lineno, line_count, assert_count))
+
         if self._check_recursion(node):
             self._add_diag(
                 func_name_range,
@@ -161,14 +175,13 @@ class NasaVisitor(ast.NodeVisitor):
                 "NASA01-B",
             )
 
-        if node.end_lineno - node.lineno >= MAX_FUNCTION_LINES:
+        if line_count >= MAX_FUNCTION_LINES:
             self._add_diag(
                 func_name_range,
                 f"Function '{func_name}' longer than {MAX_FUNCTION_LINES} lines (NASA04)",
                 "NASA04",
             )
 
-        assert_count = self._count_asserts(node)
         if assert_count < MIN_ASSERTS_PER_FUNCTION:
             self._add_diag(
                 func_name_range,
@@ -194,15 +207,15 @@ class NasaVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def analyze(text: str) -> list[Diagnostic]:
+def analyze(text: str) -> tuple[list[Diagnostic], list[FunctionStat]]:
     assert isinstance(text, str)
     assert text is not None
     if not text.strip():
-        return []
+        return [], []
     try:
         tree = ast.parse(text)
     except SyntaxError:
-        return []
+        return [], []
     visitor = NasaVisitor(text)
     visitor.visit(tree)
-    return visitor.diagnostics
+    return visitor.diagnostics, visitor.stats

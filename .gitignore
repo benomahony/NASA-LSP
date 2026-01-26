@@ -15,3 +15,5 @@ mutants/
 
 # Zensical build output
 site/
+
+.claude/

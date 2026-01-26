@@ -31,7 +31,7 @@ def to_lsp_diagnostic(diag: Diagnostic) -> types.Diagnostic:
 def run_checks(ls: LanguageServer, doc: TextDocument) -> None:
     assert ls
     assert doc
-    diagnostics = analyze(doc.source)
+    diagnostics, _ = analyze(doc.source)
     ls.text_document_publish_diagnostics(
         types.PublishDiagnosticsParams(
             uri=doc.uri,
