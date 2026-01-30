@@ -3,7 +3,7 @@ name = "nasa-lsp"
 version = "0.1.8"
 description = "A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python."
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = ["dead>=2.1.0", "pygls>=2.0.0", "typer>=0.21.1"]
 
 [project.optional-dependencies]
@@ -45,12 +45,12 @@ ignore = [
   "PLR2004", # magic values in comparisons (common and clear in test assertions)
 ]
 "tests/test_fuzzing.py" = [
-  "BLE001",  # blind exception (intentionally testing robustness against any exception)
-  "FBT001",  # boolean positional arguments (test helper functions)
-  "FBT002",  # boolean default arguments (test helper functions)
+  "BLE001", # blind exception (intentionally testing robustness against any exception)
+  "FBT001", # boolean positional arguments (test helper functions)
+  "FBT002", # boolean default arguments (test helper functions)
 ]
 "tests/test_simulations.py" = [
-  "RUF001",  # ambiguous unicode characters (intentionally testing unicode handling)
+  "RUF001", # ambiguous unicode characters (intentionally testing unicode handling)
 ]
 
 [tool.basedpyright]
