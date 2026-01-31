@@ -25,6 +25,16 @@ package = true
 [project.scripts]
 nasa = "nasa_lsp.cli:app"
 
+[tool.nasa-lsp]
+# Enable/disable specific NASA rules
+rules = [
+  "NASA01-A",  # Forbidden APIs (eval, exec, etc.)
+  "NASA01-B",  # No recursion
+  "NASA02",    # No unbounded loops
+  "NASA04",    # Max function length
+  "NASA05",    # Minimum assertions per function
+]
+
 [tool.ruff]
 target-version = "py313"
 line-length = 120

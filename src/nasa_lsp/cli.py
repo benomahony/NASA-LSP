@@ -30,23 +30,23 @@ EXCLUDED_DIRS: Final = frozenset(
 
 
 def should_exclude(path: Path) -> bool:
-    assert path
-    assert isinstance(path, Path)
+    assert path is not None, "Path must not be None"
+    assert isinstance(path, Path), "Path must be a Path object"
     return any(part in EXCLUDED_DIRS or part.endswith(".egg-info") for part in path.parts)
 
 
 def format_diagnostic(path: Path, diag: Diagnostic) -> str:
-    assert path
-    assert diag
+    assert path is not None, "Path must not be None"
+    assert diag is not None, "Diagnostic must not be None"
     line = diag.range.start.line + 1
     col = diag.range.start.character + 1
     return f"{path}:{line}:{col}: {diag.code} {diag.message}"
 
 
 def print_diagnostic(path: Path, diag: Diagnostic, cwd: Path) -> None:
-    assert path
-    assert diag
-    assert console, "Rich console not initialized"
+    assert path is not None, "Path must not be None"
+    assert diag is not None, "Diagnostic must not be None"
+    assert console is not None, "Rich console not initialized"
     rel_path = path.relative_to(cwd) if path.is_relative_to(cwd) else path
     line = diag.range.start.line + 1
     col = diag.range.start.character + 1
@@ -60,8 +60,8 @@ def lint(
     paths: Annotated[list[Path] | None, typer.Argument(help="Files or directories to lint")] = None,
 ) -> None:
     """Check Python files for NASA Power of 10 rule violations."""
-    assert console is not None
-    assert isinstance(paths, list | None)
+    assert console is not None, "Console must be initialized"
+    assert isinstance(paths, list | None), "Paths must be a list or None"
     cwd = Path.cwd()
     if paths is None:
         paths = [cwd]
@@ -75,7 +75,7 @@ def lint(
 
     all_diagnostics: list[tuple[Path, Diagnostic]] = []
     for file in sorted(files):
-        diagnostics, _ = analyze(file.read_text())
+        diagnostics, _ = analyze(file.read_text(), file)
         all_diagnostics.extend((file, diag) for diag in diagnostics)
 
     for file, diag in all_diagnostics:
@@ -98,8 +98,8 @@ def stats(
     paths: Annotated[list[Path] | None, typer.Argument(help="Files or directories to analyze")] = None,
 ) -> None:
     """List all functions, line counts, and assert counts."""
-    assert console is not None
-    assert isinstance(paths, list | None)
+    assert console is not None, "Console must be initialized"
+    assert isinstance(paths, list | None), "Paths must be a list or None"
     cwd = Path.cwd()
     if paths is None:
         paths = [cwd]
@@ -118,7 +118,7 @@ def stats(
     table.add_column("Asserts", justify="right")
 
     for file in sorted(files):
-        _, func_stats = analyze(file.read_text())
+        _, func_stats = analyze(file.read_text(), file)
         for s in func_stats:
             rel_path = file.relative_to(cwd) if file.is_relative_to(cwd) else file
 
@@ -139,8 +139,8 @@ def stats(
 @app.command()
 def serve() -> None:
     """Start the Language Server Protocol server."""
-    assert app is not None
-    assert isinstance(app, typer.Typer)
+    assert app is not None, "App must be initialized"
+    assert isinstance(app, typer.Typer), "App must be a Typer instance"
     from nasa_lsp.server import serve as start_server  # noqa: PLC0415
 
     start_server()
