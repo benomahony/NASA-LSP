@@ -90,8 +90,8 @@ def test_run_checks_with_clean_code() -> None:
     ls = LanguageServer("test", "0.1")
     clean_source = """
 def foo():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
     return 1
 """
     doc = TextDocument(uri="file:///clean.py", source=clean_source, version=CLEAN_CODE_VERSION)

@@ -192,6 +192,18 @@ class NasaVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
+    @override
+    def visit_Assert(self, node: ast.Assert) -> None:
+        assert node is not None, "Assert node must not be None"
+        assert hasattr(node, "test"), "Assert node must have test attribute"
+        if node.msg is None:
+            self._add_diag(
+                self._range_for_node(node),
+                "Assert statement missing descriptive error message (NASA05: assertions must explain invariant)",
+                "NASA05-A",
+            )
+        self.generic_visit(node)
+
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
         assert func_name, "Function must have a name"

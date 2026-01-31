@@ -1,5 +1,6 @@
 visit_Call
 visit_While
+visit_Assert
 visit_FunctionDef
 visit_AsyncFunctionDef
 did_open

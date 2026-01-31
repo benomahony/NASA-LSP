@@ -33,6 +33,7 @@ rules = [
   "NASA02",    # No unbounded loops
   "NASA04",    # Max function length
   "NASA05",    # Minimum assertions per function
+  "NASA05-A",  # Assertions must have descriptive messages
 ]
 
 [tool.ruff]

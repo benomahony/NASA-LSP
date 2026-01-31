@@ -46,8 +46,8 @@ def test_lint_clean_file() -> None:
         clean_file = Path(tmpdir) / "clean.py"
         _ = clean_file.write_text("""
 def foo():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
     return 1
 """)
         result = runner.invoke(app, ["lint", str(clean_file)])
@@ -75,8 +75,8 @@ def test_lint_directory() -> None:
         clean_file = subdir / "clean.py"
         _ = clean_file.write_text("""
 def foo():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
 """)
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 0
@@ -98,13 +98,13 @@ def test_lint_multiple_files() -> None:
         file2 = Path(tmpdir) / "file2.py"
         _ = file1.write_text("""
 def foo():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
 """)
         _ = file2.write_text("""
 def bar():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
 """)
         result = runner.invoke(app, ["lint", str(file1), str(file2)])
         assert result.exit_code == 0
@@ -233,8 +233,8 @@ def test_stats_single_file() -> None:
         test_file = Path(tmpdir) / "test.py"
         _ = test_file.write_text("""
 def foo():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
     return 1
 
 def bar():
@@ -253,8 +253,8 @@ def test_stats_directory() -> None:
         test_file = Path(tmpdir) / "test.py"
         _ = test_file.write_text("""
 def example():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
 """)
         result = runner.invoke(app, ["stats", str(tmpdir)])
         assert result.exit_code == 0
@@ -289,8 +289,8 @@ def test_stats_shows_line_counts() -> None:
         test_file = Path(tmpdir) / "test.py"
         _ = test_file.write_text("""
 def short():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
     return 1
 """)
         result = runner.invoke(app, ["stats", str(test_file)])

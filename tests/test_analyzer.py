@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 from nasa_lsp.analyzer import (
+    DEFAULT_ENABLED_RULES,
     Diagnostic,
     Position,
     Range,
     analyze,
 )
+
+# For most tests, exclude NASA05-A since test code examples don't need assertion messages
+RULES_WITHOUT_ASSERT_MESSAGES = DEFAULT_ENABLED_RULES - {"NASA05-A"}
 
 
 def test_analyze_returns_empty_for_syntax_error() -> None:
@@ -29,10 +33,10 @@ def test_analyze_returns_empty_for_whitespace_only() -> None:
 def test_analyze_returns_empty_for_valid_code_with_asserts() -> None:
     code = """
 def foo():
-    assert True
-    assert False
+    assert True, "Test assertion 1"
+    assert False, "Test assertion 2"
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert isinstance(diagnostics, list)
 
@@ -44,7 +48,7 @@ def foo():
     assert False
     eval("1+1")
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "eval" in diagnostics[0].message
@@ -58,7 +62,7 @@ def foo():
     assert False
     exec("x=1")
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "exec" in diagnostics[0].message
@@ -71,7 +75,7 @@ def foo():
     assert False
     compile("x=1", "", "exec")
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "compile" in diagnostics[0].message
@@ -84,7 +88,7 @@ def foo():
     assert False
     globals()
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "globals" in diagnostics[0].message
@@ -97,7 +101,7 @@ def foo():
     assert False
     locals()
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "locals" in diagnostics[0].message
@@ -110,7 +114,7 @@ def foo():
     assert False
     __import__("os")
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "__import__" in diagnostics[0].message
@@ -123,7 +127,7 @@ def foo():
     assert False
     setattr(obj, "x", 1)
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "setattr" in diagnostics[0].message
@@ -136,7 +140,7 @@ def foo():
     assert False
     getattr(obj, "x")
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "getattr" in diagnostics[0].message
@@ -149,7 +153,7 @@ def foo():
     assert False
     obj.eval()
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-A"
     assert "eval" in diagnostics[0].message
@@ -163,7 +167,7 @@ def foo():
     print("hello")
     len([1, 2, 3])
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -177,7 +181,7 @@ def factorial(n):
         return 1
     return n * factorial(n - 1)
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-B"
     assert "factorial" in diagnostics[0].message
@@ -191,7 +195,7 @@ def add(a, b):
     assert b is not None
     return a + b
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -205,7 +209,7 @@ def outer():
         inner()
     return inner
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = [d.code for d in diagnostics]
     assert "NASA01-B" in codes
     inner_diag = next(d for d in diagnostics if d.code == "NASA01-B")
@@ -220,7 +224,7 @@ def foo():
     while True:
         pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA02"
     assert "while True" in diagnostics[0].message
@@ -235,7 +239,7 @@ def foo():
     while x > 0:
         x -= 1
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -248,7 +252,7 @@ def foo():
     while False:
         pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -256,7 +260,7 @@ def foo():
 def test_nasa04_detects_long_function() -> None:
     lines = ["    pass"] * 61
     code = "def long_func():\n    assert True\n    assert False\n" + "\n".join(lines)
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = [d.code for d in diagnostics]
     assert "NASA04" in codes
     nasa04 = next(d for d in diagnostics if d.code == "NASA04")
@@ -271,7 +275,7 @@ def short_func():
     assert False
     pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -281,7 +285,7 @@ def test_nasa05_detects_zero_asserts() -> None:
 def no_asserts():
     pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA05"
     assert "0 assert" in diagnostics[0].message
@@ -292,7 +296,7 @@ def test_nasa05_detects_one_assert() -> None:
 def one_assert():
     assert True
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA05"
     assert "1 assert" in diagnostics[0].message
@@ -304,7 +308,7 @@ def two_asserts():
     assert True
     assert False
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -316,7 +320,7 @@ def many_asserts():
     assert False
     assert 1 == 1
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -328,7 +332,7 @@ def nested_asserts():
         assert True
         assert False
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -341,7 +345,7 @@ def outer():
         assert False
     pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = [d.code for d in diagnostics]
     assert codes.count("NASA05") == 1
     nasa05 = next(d for d in diagnostics if d.code == "NASA05")
@@ -357,7 +361,7 @@ def outer():
             assert False
     pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     outer_diags = [d for d in diagnostics if "outer" in d.message]
     assert len(outer_diags) == 1
     assert outer_diags[0].code == "NASA05"
@@ -370,7 +374,7 @@ async def recursive():
     assert False
     await recursive()
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA01-B"
     assert "recursive" in diagnostics[0].message
@@ -381,7 +385,7 @@ def test_async_function_asserts() -> None:
 async def no_asserts():
     await something()
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA05"
 
@@ -393,7 +397,7 @@ async def with_asserts():
     assert False
     await something()
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -401,7 +405,7 @@ async def with_asserts():
 def test_diagnostic_position_is_correct() -> None:
     code = "def foo():\n    pass"
     expected_col = len("def ")
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     diag = diagnostics[0]
     assert isinstance(diag.range, Range)
@@ -418,7 +422,7 @@ def bad():
     while True:
         pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = {d.code for d in diagnostics}
     assert "NASA01-A" in codes
     assert "NASA02" in codes
@@ -431,7 +435,7 @@ x = 1
 y = 2
 print(x + y)
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
@@ -442,7 +446,7 @@ class Foo:
     def method(self):
         pass
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA05"
     assert "method" in diagnostics[0].message
@@ -456,14 +460,14 @@ def foo():
     f = lambda x: x + 1
     return f
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert diagnostics == []
     assert len(diagnostics) == 0
 
 
 def test_range_for_func_name_fallback_when_def_not_found() -> None:
     code = "def foo(): pass"
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].range.start.line == 0
 
@@ -473,6 +477,6 @@ def test_empty_function_body() -> None:
 def empty():
     ...
 """
-    diagnostics, _ = analyze(code)
+    diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA05"
