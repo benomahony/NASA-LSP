@@ -436,7 +436,7 @@ wheels = [
 
 [[package]]
 name = "nasa-lsp"
-version = "0.1.8"
+version = "0.1.9"
 source = { editable = "." }
 dependencies = [
     { name = "dead" },
