@@ -32,11 +32,15 @@ EXTENDS Naturals, FiniteSets, TLC
 
 CONSTANTS
     FunctionName,           \* Set of possible function names
-    MAX_LINES,              \* = 60  (NASA04 threshold)
-    MIN_ASSERTS             \* = 2   (NASA05 threshold)
+    MAX_LINES,              \* NASA04 threshold (60 in production; use smaller value for TLC)
+    MIN_ASSERTS,            \* NASA05 threshold (2 in production)
+    MAX_LINE_COUNT,         \* TLC bound for line_count field; must be >= MAX_LINES
+    MAX_ASSERT_COUNT        \* TLC bound for assert_count field; must be >= MIN_ASSERTS
 
-ASSUME MAX_LINES = 60
-ASSUME MIN_ASSERTS = 2
+ASSUME MAX_LINES \in Nat /\ MAX_LINES >= 1
+ASSUME MIN_ASSERTS \in Nat /\ MIN_ASSERTS >= 1
+ASSUME MAX_LINE_COUNT >= MAX_LINES
+ASSUME MAX_ASSERT_COUNT >= MIN_ASSERTS
 
 \* ---------------------------------------------------------------------------
 \* Abstract program representation
@@ -54,8 +58,8 @@ ASSUME MIN_ASSERTS = 2
 
 Function == [
     name           : FunctionName,
-    line_count     : Nat,
-    assert_count   : Nat,
+    line_count     : 0..MAX_LINE_COUNT,
+    assert_count   : 0..MAX_ASSERT_COUNT,
     is_recursive   : BOOLEAN,
     has_forbidden_call : BOOLEAN,
     has_while_true : BOOLEAN
@@ -177,11 +181,11 @@ Idempotency(prog, analyze_op(_)) ==
   cannot cause Nasa05_Fires to become TRUE.
 *)
 Nasa05Monotone ==
-    \A n \in Nat :
+    \A n \in 0..MAX_ASSERT_COUNT :
         n >= MIN_ASSERTS =>
-        \A m \in Nat :
+        \A m \in 0..MAX_ASSERT_COUNT :
             m >= n => ~Nasa05_Fires([assert_count |-> m,
-                                     name |-> "x",
+                                     name |-> CHOOSE fn \in FunctionName : TRUE,
                                      line_count |-> 1,
                                      is_recursive |-> FALSE,
                                      has_forbidden_call |-> FALSE,
@@ -192,12 +196,12 @@ Nasa05Monotone ==
   diagnostic that wasn't there before.
 *)
 Nasa04AntiMonotone ==
-    \A n \in Nat :
+    \A n \in 0..MAX_LINE_COUNT :
         n < MAX_LINES =>
-        \A m \in Nat :
+        \A m \in 0..MAX_LINE_COUNT :
             m <= n => ~Nasa04_Fires([line_count |-> m,
-                                     name |-> "x",
-                                     assert_count |-> 2,
+                                     name |-> CHOOSE fn \in FunctionName : TRUE,
+                                     assert_count |-> MIN_ASSERTS,
                                      is_recursive |-> FALSE,
                                      has_forbidden_call |-> FALSE,
                                      has_while_true |-> FALSE])
