@@ -112,7 +112,10 @@ DidOpen(uri, content) ==
     /\ uri \in URI
     /\ content \in CONTENT
     /\ open_docs' = open_docs @@ (uri :> content)
-    /\ published_diags' = published_diags @@ (uri :> Analyze(content))
+    \* Use (uri :> ...) @@ published_diags so the NEW value wins.
+    \* TLC's @@ gives priority to the LEFT operand; a prior <<>> entry
+    \* from DidClose would otherwise shadow the fresh Analyze result.
+    /\ published_diags' = (uri :> Analyze(content)) @@ published_diags
     /\ UNCHANGED pending_changes
 
 (*
@@ -216,5 +219,16 @@ EventuallyConsistent ==
 \* ---------------------------------------------------------------------------
 
 THEOREM Spec => [](DiagnosticConsistency /\ NoStaleDiagnostics /\ DiagnosticDomainComplete)
+
+\* ---------------------------------------------------------------------------
+\* TLC model operator
+\* Substituted for Analyze(_) via NasaLSP.cfg during model checking.
+\* Not used in the spec proper.
+\* ---------------------------------------------------------------------------
+
+AnalyzeModel(c) ==
+    IF c = "violating_code"
+    THEN << [code |-> "NASA05", message |-> "too few asserts"] >>
+    ELSE << >>
 
 ================================================================

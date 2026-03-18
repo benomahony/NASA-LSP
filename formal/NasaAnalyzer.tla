@@ -65,8 +65,11 @@ Function == [
     has_while_true : BOOLEAN
 ]
 
-\* A Program is a finite set of functions
-Program == SUBSET Function
+\* A Program is a finite set of functions.
+\* For TLC we model programs with at most one function: the empty program
+\* plus all singleton programs.  This avoids enumerating the full power-set
+\* (2^|Function| elements) while still exercising every rule predicate.
+Program == {{}} \cup {{f} : f \in Function}
 
 \* ---------------------------------------------------------------------------
 \* Rule predicates — one per NASA rule
@@ -120,12 +123,13 @@ DiagCode == {"NASA01-A", "NASA01-B", "NASA02", "NASA04", "NASA05"}
   for a given program. Each element is a (code, function_name) pair.
 *)
 ExpectedDiagnostics(prog) ==
-    {<<code, f.name>> : code \in DiagCode, f \in prog,
-        \/ (code = "NASA01-A" /\ Nasa01A_Fires(f))
-        \/ (code = "NASA01-B" /\ Nasa01B_Fires(f))
-        \/ (code = "NASA02"   /\ Nasa02_Fires(f))
-        \/ (code = "NASA04"   /\ Nasa04_Fires(f))
-        \/ (code = "NASA05"   /\ Nasa05_Fires(f))}
+    LET firing == {<<c, g>> \in DiagCode \X prog :
+                      \/ (c = "NASA01-A" /\ Nasa01A_Fires(g))
+                      \/ (c = "NASA01-B" /\ Nasa01B_Fires(g))
+                      \/ (c = "NASA02"   /\ Nasa02_Fires(g))
+                      \/ (c = "NASA04"   /\ Nasa04_Fires(g))
+                      \/ (c = "NASA05"   /\ Nasa05_Fires(g))}
+    IN {<<p[1], p[2].name>> : p \in firing}
 
 \* ---------------------------------------------------------------------------
 \* Correctness properties of the analyzer
