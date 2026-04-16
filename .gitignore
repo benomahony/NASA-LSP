@@ -24,3 +24,8 @@ htmlcov/
 site/
 
 .claude/
+
+# LaTeX build artifacts
+*.aux
+*.dvi
+*.log
