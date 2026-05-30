@@ -7,7 +7,6 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from nasa_lsp._languages import SUPPORTED_EXTENSIONS, language_for_suffix
 from nasa_lsp.analyzer import (
     MAX_FUNCTION_LINES,
     MIN_ASSERTS_PER_FUNCTION,
@@ -15,6 +14,7 @@ from nasa_lsp.analyzer import (
     FunctionStat,
     analyze,
 )
+from nasa_lsp.languages import SUPPORTED_EXTENSIONS, language_for_suffix
 
 app = typer.Typer()
 console = Console()

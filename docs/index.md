@@ -1,6 +1,6 @@
 # NASA LSP
 
-A language-agnostic Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code across Python, C, C++, Go, Rust, JavaScript, and TypeScript.
+A language-agnostic Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code across Python, C, C++, Go, Rust, JavaScript, TypeScript, and Zig.
 
 ## Background
 
@@ -14,7 +14,7 @@ While tools like Ruff handle general Python quality, **NASA LSP enforces safety-
 - ✅ **Bounded loop enforcement** - Ruff doesn't restrict `while True` or require loop bounds
 - ✅ **Strict line limits** - Ruff has complexity metrics but not hard 60-line function limits
 - ✅ **Assertion density** - Ruff doesn't enforce minimum assertions per function
-- ✅ **One tool, many languages** - the same rules apply to Python, C, C++, Go, Rust, JavaScript, and TypeScript via tree-sitter
+- ✅ **One tool, many languages** - the same rules apply to Python, C, C++, Go, Rust, JavaScript, TypeScript, and Zig via tree-sitter
 
 **Use NASA LSP when:** Building safety-critical, embedded, or verifiable systems in any supported language
 **Use Ruff when:** General Python quality and best practices

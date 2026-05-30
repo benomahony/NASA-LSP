@@ -19,6 +19,9 @@ NASA LSP parses every language with [tree-sitter](https://tree-sitter.github.io/
 | Rust | `.rs` | `assert!`/`assert_eq!`/`debug_assert!` count toward density |
 | JavaScript | `.js`, `.mjs`, `.cjs`, `.jsx` | Assertion-density rule disabled |
 | TypeScript | `.ts`, `.tsx` | Assertion-density rule disabled |
+| Zig | `.zig` | `std.debug.assert`/`std.testing.expect` count toward density |
+
+Adding a language is a single module under `src/nasa_lsp/languages/` that exports a `LanguageSpec`.
 
 The language is inferred from the file extension. Grammars are fetched on first use via
 [`tree-sitter-language-pack`](https://pypi.org/project/tree-sitter-language-pack/).
@@ -73,7 +76,7 @@ Using lazy.nvim:
     servers = {
       nasa_lsp = {
         cmd = { "uvx", "--from", "nasa-lsp", "nasa", "serve" },
-        filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
+        filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript", "zig" },
         root_dir = function(fname)
           return require("lspconfig.util").find_git_ancestor(fname)
         end,
@@ -89,7 +92,7 @@ Or with manual configuration:
 ```lua
 require("lspconfig").nasa_lsp.setup({
   cmd = { "uvx", "--from", "nasa-lsp", "nasa", "serve" },
-  filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
+  filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript", "zig" },
   root_dir = require("lspconfig.util").find_git_ancestor,
 })
 ```

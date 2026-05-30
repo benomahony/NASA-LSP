@@ -13,14 +13,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Final
 
-from nasa_lsp._languages import (
+from nasa_lsp._parsers import get_parser
+from nasa_lsp.languages import (
     SPECS,
     LanguageSpec,
     direct_callee_name,
     node_text,
     resolved_callee_name,
 )
-from nasa_lsp._parsers import get_parser
 
 if TYPE_CHECKING:
     from collections.abc import Iterator

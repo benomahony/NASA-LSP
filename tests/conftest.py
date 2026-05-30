@@ -14,6 +14,7 @@ import tree_sitter_javascript
 import tree_sitter_python
 import tree_sitter_rust
 import tree_sitter_typescript
+import tree_sitter_zig
 from tree_sitter import Language
 
 from nasa_lsp._parsers import register_language
@@ -26,12 +27,13 @@ _GRAMMARS = {
     "rust": tree_sitter_rust.language,
     "javascript": tree_sitter_javascript.language,
     "typescript": tree_sitter_typescript.language_typescript,
+    "zig": tree_sitter_zig.language,
 }
 
 
 def _seed_parsers() -> None:
     assert _GRAMMARS
-    assert len(_GRAMMARS) == 7
+    assert len(_GRAMMARS) == 8
     for name, grammar in _GRAMMARS.items():
         register_language(name, Language(grammar()))
 

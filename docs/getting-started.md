@@ -29,7 +29,7 @@ Using lazy.nvim:
     servers = {
       nasa_lsp = {
         cmd = { "uvx", "nasa_lsp" },
-        filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
+        filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript", "zig" },
         root_dir = function(fname)
           return require("lspconfig.util").find_git_ancestor(fname)
         end,
@@ -45,7 +45,7 @@ Or with manual configuration:
 ```lua
 require("lspconfig").nasa_lsp.setup({
   cmd = { "uvx", "nasa_lsp" },
-  filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
+  filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript", "zig" },
   root_dir = require("lspconfig.util").find_git_ancestor,
 })
 ```

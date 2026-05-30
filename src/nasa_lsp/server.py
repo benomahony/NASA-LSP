@@ -7,8 +7,8 @@ from urllib.parse import urlparse
 from lsprotocol import types
 from pygls.lsp.server import LanguageServer
 
-from nasa_lsp._languages import language_for_suffix
 from nasa_lsp.analyzer import Diagnostic, analyze
+from nasa_lsp.languages import language_for_suffix
 
 if TYPE_CHECKING:
     from pygls.workspace import TextDocument

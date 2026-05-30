@@ -6,8 +6,8 @@ are seeded from bundled grammar wheels in ``conftest.py``.
 
 from __future__ import annotations
 
-from nasa_lsp._languages import SUPPORTED_EXTENSIONS, language_for_suffix
 from nasa_lsp.analyzer import analyze
+from nasa_lsp.languages import SUPPORTED_EXTENSIONS, language_for_suffix
 
 
 def codes(code: str, language: str) -> list[str]:
@@ -252,3 +252,40 @@ def test_typescript_detects_while_true() -> None:
     result = codes(code, "typescript")
     assert "NASA02" in result
     assert "NASA01-B" in result
+
+
+# --- Zig -------------------------------------------------------------------
+
+
+def test_zig_language_detected() -> None:
+    assert language_for_suffix(".zig") == "zig"
+    assert "zig" in SUPPORTED_EXTENSIONS or ".zig" in SUPPORTED_EXTENSIONS
+
+
+def test_zig_detects_while_true_and_recursion() -> None:
+    code = "fn fac(n: i32) i32 {\n    while (true) {}\n    return fac(n - 1);\n}"
+    result = codes(code, "zig")
+    assert "NASA02" in result
+    assert "NASA01-B" in result
+
+
+def test_zig_std_asserts_count_toward_density() -> None:
+    # std.debug.assert / std.testing.expect resolve to their member name.
+    code = "fn ok(a: i32) i32 {\n    std.debug.assert(a > 0);\n    std.testing.expect(a < 9);\n    return a;\n}"
+    result = codes(code, "zig")
+    assert "NASA05" not in result
+    assert isinstance(result, list)
+
+
+def test_zig_missing_assertions_flagged() -> None:
+    code = "fn bare(a: i32) i32 {\n    return a;\n}"
+    result = codes(code, "zig")
+    assert "NASA05" in result
+    assert isinstance(result, list)
+
+
+def test_zig_bounded_while_is_clean() -> None:
+    code = "fn f(n: i32) void {\n    std.debug.assert(n > 0);\n    std.debug.assert(n < 9);\n    while (n > 0) {}\n}"
+    result = codes(code, "zig")
+    assert result == []
+    assert isinstance(result, list)
