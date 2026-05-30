@@ -1,10 +1,27 @@
 # NASA LSP
 
-A Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code in Python.
+A language-agnostic Language Server Protocol implementation that enforces NASA's Power of 10 rules for safety-critical code.
 
 ## Background
 
 The Power of 10 rules were created in 2006 by Gerard J. Holzmann of NASA's Jet Propulsion Laboratory to improve the safety and reliability of mission-critical software. While originally designed for C, these principles apply broadly to writing verifiable, analyzable code in any language.
+
+## Supported Languages
+
+NASA LSP parses every language with [tree-sitter](https://tree-sitter.github.io/), so the same rules apply across:
+
+| Language | Extensions | Notes |
+| --- | --- | --- |
+| Python | `.py`, `.pyi` | Full rule set (default) |
+| C | `.c`, `.h` | `assert()` counts toward assertion density |
+| C++ | `.cpp`, `.cc`, `.cxx`, `.hpp`, … | `assert()` counts toward assertion density |
+| Go | `.go` | Assertion-density rule disabled (no idiomatic assert) |
+| Rust | `.rs` | `assert!`/`assert_eq!`/`debug_assert!` count toward density |
+| JavaScript | `.js`, `.mjs`, `.cjs`, `.jsx` | Assertion-density rule disabled |
+| TypeScript | `.ts`, `.tsx` | Assertion-density rule disabled |
+
+The language is inferred from the file extension. Grammars are fetched on first use via
+[`tree-sitter-language-pack`](https://pypi.org/project/tree-sitter-language-pack/).
 
 ## Installation
 
@@ -56,7 +73,7 @@ Using lazy.nvim:
     servers = {
       nasa_lsp = {
         cmd = { "uvx", "--from", "nasa-lsp", "nasa", "serve" },
-        filetypes = { "python" },
+        filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
         root_dir = function(fname)
           return require("lspconfig.util").find_git_ancestor(fname)
         end,
@@ -72,7 +89,7 @@ Or with manual configuration:
 ```lua
 require("lspconfig").nasa_lsp.setup({
   cmd = { "uvx", "--from", "nasa-lsp", "nasa", "serve" },
-  filetypes = { "python" },
+  filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
   root_dir = require("lspconfig.util").find_git_ancestor,
 })
 ```
@@ -94,7 +111,7 @@ For a VS Code extension, install from the marketplace or configure manually by a
 
 ## Usage
 
-The LSP runs automatically on Python files and provides inline diagnostics as you type. Violations appear as warnings with diagnostic codes:
+The LSP runs automatically on supported source files and provides inline diagnostics as you type. Violations appear as warnings with diagnostic codes:
 
 - `NASA01-A`: Use of forbidden dynamic API
 - `NASA01-B`: Direct recursive function call

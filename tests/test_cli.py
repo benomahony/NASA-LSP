@@ -6,7 +6,15 @@ from tempfile import TemporaryDirectory
 from typer.testing import CliRunner
 
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.cli import EXCLUDED_DIRS, app, format_diagnostic, should_exclude
+from nasa_lsp.cli import (
+    EXCLUDED_DIRS,
+    analyze_file,
+    app,
+    discover_files,
+    format_diagnostic,
+    is_supported,
+    should_exclude,
+)
 
 runner = CliRunner()
 
@@ -309,3 +317,59 @@ def test_serve_command_imports() -> None:
     result = runner.invoke(app, ["serve", "--help"])
     assert result.exit_code == 0
     assert "Language Server Protocol" in result.stdout
+
+
+def test_is_supported_recognises_multiple_languages() -> None:
+    assert is_supported(Path("main.py"))
+    assert is_supported(Path("lib.rs"))
+    assert is_supported(Path("server.go"))
+    assert is_supported(Path("app.ts"))
+    assert not is_supported(Path("notes.txt"))
+
+
+def test_discover_files_mixed_languages() -> None:
+    with TemporaryDirectory() as tmpdir:
+        root = Path(tmpdir)
+        _ = (root / "a.py").write_text("def f(): pass")
+        _ = (root / "b.rs").write_text("fn f() {}")
+        _ = (root / "c.go").write_text("func f() {}")
+        _ = (root / "ignore.txt").write_text("nope")
+        found = {p.name for p in discover_files([root])}
+        assert found == {"a.py", "b.rs", "c.go"}
+        assert "ignore.txt" not in found
+
+
+def test_analyze_file_uses_extension_language() -> None:
+    with TemporaryDirectory() as tmpdir:
+        rust_file = Path(tmpdir) / "spin.rs"
+        _ = rust_file.write_text("fn spin() {\n    loop {}\n}")
+        diagnostics, _ = analyze_file(rust_file)
+        assert any(d.code == "NASA02" for d in diagnostics)
+        assert isinstance(diagnostics, list)
+
+
+def test_lint_rust_file_with_violations() -> None:
+    with TemporaryDirectory() as tmpdir:
+        rust_file = Path(tmpdir) / "spin.rs"
+        _ = rust_file.write_text("fn spin() {\n    loop {}\n}")
+        result = runner.invoke(app, ["lint", str(rust_file)])
+        assert result.exit_code == 1
+        assert "NASA02" in result.stdout
+
+
+def test_lint_clean_go_file() -> None:
+    with TemporaryDirectory() as tmpdir:
+        go_file = Path(tmpdir) / "ok.go"
+        _ = go_file.write_text("func f(n int) {\n\tfor i := 0; i < n; i++ {\n\t}\n}")
+        result = runner.invoke(app, ["lint", str(go_file)])
+        assert result.exit_code == 0
+        assert "no violations" in result.stdout
+
+
+def test_stats_rust_file() -> None:
+    with TemporaryDirectory() as tmpdir:
+        rust_file = Path(tmpdir) / "lib.rs"
+        _ = rust_file.write_text("fn compute(a: i32) -> i32 {\n    a + 1\n}")
+        result = runner.invoke(app, ["stats", str(rust_file)])
+        assert result.exit_code == 0
+        assert "compute" in result.stdout

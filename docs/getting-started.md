@@ -29,7 +29,7 @@ Using lazy.nvim:
     servers = {
       nasa_lsp = {
         cmd = { "uvx", "nasa_lsp" },
-        filetypes = { "python" },
+        filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
         root_dir = function(fname)
           return require("lspconfig.util").find_git_ancestor(fname)
         end,
@@ -45,7 +45,7 @@ Or with manual configuration:
 ```lua
 require("lspconfig").nasa_lsp.setup({
   cmd = { "uvx", "nasa_lsp" },
-  filetypes = { "python" },
+  filetypes = { "python", "c", "cpp", "go", "rust", "javascript", "typescript" },
   root_dir = require("lspconfig.util").find_git_ancestor,
 })
 ```
@@ -65,7 +65,7 @@ Create or edit `.vscode/settings.json`:
 
 ## Usage
 
-The LSP runs automatically on Python files and provides inline diagnostics as you type. Violations appear as warnings with diagnostic codes:
+The LSP runs automatically on supported source files (Python, C, C++, Go, Rust, JavaScript, TypeScript) and provides inline diagnostics as you type. Violations appear as warnings with diagnostic codes:
 
 - `NASA01-A`: Use of forbidden dynamic API
 - `NASA01-B`: Direct recursive function call

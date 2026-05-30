@@ -5,7 +5,12 @@ from pygls.lsp.server import LanguageServer
 from pygls.workspace import TextDocument
 
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.server import run_checks, server, to_lsp_diagnostic
+from nasa_lsp.server import (
+    language_for_uri,
+    run_checks,
+    server,
+    to_lsp_diagnostic,
+)
 
 CLEAN_CODE_VERSION = 2
 
@@ -55,11 +60,11 @@ def test_to_lsp_diagnostic_preserves_all_fields() -> None:
 
 def test_server_is_language_server() -> None:
     assert server is not None
-    assert server.name == "nasa-python-lsp"
+    assert server.name == "nasa-lsp"
 
 
 def test_server_version() -> None:
-    assert server.version == "0.2.0"
+    assert server.version == "0.3.0"
     assert isinstance(server.version, str)
 
 
@@ -132,3 +137,51 @@ def test_run_checks_with_syntax_error() -> None:
 
     assert published_diagnostics is not None
     assert len(published_diagnostics.diagnostics) == 0
+
+
+def test_language_for_uri_supported() -> None:
+    assert language_for_uri("file:///project/main.py") == "python"
+    assert language_for_uri("file:///project/lib.rs") == "rust"
+    assert language_for_uri("file:///a/b/server.go") == "go"
+
+
+def test_language_for_uri_unsupported() -> None:
+    assert language_for_uri("file:///notes.txt") is None
+    assert language_for_uri("file:///README") is None
+
+
+def test_run_checks_non_python_language() -> None:
+    ls = LanguageServer("test", "0.1")
+    doc = TextDocument(uri="file:///spin.rs", source="fn spin() {\n    loop {}\n}", version=1)
+    published: list[types.PublishDiagnosticsParams] = []
+
+    def capture(params: types.PublishDiagnosticsParams) -> None:
+        assert params is not None
+        assert isinstance(params, types.PublishDiagnosticsParams)
+        published.append(params)
+
+    ls.text_document_publish_diagnostics = capture
+
+    run_checks(ls, doc)
+
+    assert len(published) == 1
+    codes = {d.code for d in published[0].diagnostics}
+    assert "NASA02" in codes
+
+
+def test_run_checks_unsupported_uri_publishes_empty() -> None:
+    ls = LanguageServer("test", "0.1")
+    doc = TextDocument(uri="file:///notes.txt", source="while True: pass", version=1)
+    published: list[types.PublishDiagnosticsParams] = []
+
+    def capture(params: types.PublishDiagnosticsParams) -> None:
+        assert params is not None
+        assert isinstance(params, types.PublishDiagnosticsParams)
+        published.append(params)
+
+    ls.text_document_publish_diagnostics = capture
+
+    run_checks(ls, doc)
+
+    assert len(published) == 1
+    assert published[0].diagnostics == []

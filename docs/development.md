@@ -2,15 +2,15 @@
 
 ## Requirements
 
-Python 3.13+
+Python 3.12+
 
 ## Setup
 
 ```bash
 git clone https://github.com/benomahony/nasa-lsp
 cd nasa-lsp
-uv sync
-python main.py
+uv sync --extra dev
+uv run nasa lint
 ```
 
 ## Project Structure
@@ -20,7 +20,11 @@ nasa-lsp/
 ├── src/
 │   └── nasa_lsp/
 │       ├── __init__.py
-│       └── main.py          # LSP server and rule implementations
+│       ├── analyzer.py       # Language-agnostic rule engine (tree-sitter)
+│       ├── _languages.py     # Per-language LanguageSpec definitions
+│       ├── _parsers.py       # Parser acquisition / cache
+│       ├── cli.py            # `nasa lint` / `nasa stats` / `nasa serve`
+│       └── server.py         # LSP server
 ├── docs/                    # Zensical documentation
 ├── pyproject.toml          # Project configuration
 └── README.md
@@ -28,40 +32,42 @@ nasa-lsp/
 
 ## Architecture
 
-The LSP uses Python's `ast` module to parse and analyze code:
+The analyzer parses source with [tree-sitter](https://tree-sitter.github.io/) and walks the
+resulting syntax tree, applying the Power of 10 rules through a per-language `LanguageSpec`:
 
-1. **NasaVisitor** - AST visitor that walks the syntax tree
-2. **Rule implementations** - Individual `visit_*` methods for each node type
-3. **Diagnostics** - LSP diagnostics published to the editor
+1. **`LanguageSpec`** (`_languages.py`) - describes how a language maps onto the rules: which
+   node types are functions, calls and loops, how to detect unbounded loops and assertions,
+   and which APIs are forbidden.
+2. **Rule engine** (`analyzer.py`) - generic logic that walks standard tree-sitter nodes and
+   emits `Diagnostic`s. It never hard-codes a single language's grammar.
+3. **Parsers** (`_parsers.py`) - grammars come from `tree-sitter-language-pack` at runtime;
+   tests seed the cache from bundled grammar wheels for offline determinism.
+
+The language for a file is inferred from its extension (`language_for_suffix`).
+
+### Adding a New Language
+
+1. Add a `LanguageSpec` entry to `SPECS` in `src/nasa_lsp/_languages.py`, describing the
+   grammar's function/call/loop/assert node types (use `tree-sitter` to inspect them).
+2. Map the file extensions in `_EXTENSION_MAP`.
+3. Seed the grammar wheel in `tests/conftest.py` and add cross-language tests.
 
 ### Adding a New Rule
 
-To add a new NASA rule:
+1. Implement the check in `analyzer.py`, reading what it needs from the active `LanguageSpec`.
+2. Expose any language-specific configuration the rule needs as `LanguageSpec` fields.
+3. Update documentation with the new rule code.
 
-1. Add a `visit_*` method to the `NasaVisitor` class in `src/nasa_lsp/main.py`
-2. Use AST pattern matching to detect violations
-3. Call `self._add_diag()` to report diagnostics
-4. Update documentation with the new rule code
+## Dogfooding
 
-Example:
-
-```python
-def visit_While(self, node: ast.While) -> None:
-    assert node
-    if isinstance(node.test, ast.Constant) and node.test.value is True:
-        range = self._range_for_node(node)
-        assert range
-        self._add_diag(
-            range,
-            "Unbounded loop 'while True' (NASA02: loops must be bounded)",
-            "NASA02",
-        )
-    self.generic_visit(node)
-```
+NASA LSP lints its own source with its own rules via the `nasa-lsp` pre-commit hook, so all
+analyzer code must itself satisfy the Power of 10 rules (no recursion, ≥2 assertions per
+function, ≤60-line functions, and so on).
 
 ## Contributing
 
-Contributions welcome for implementing additional NASA rules or improving detection accuracy.
+Contributions welcome for implementing additional NASA rules, supporting more languages, or
+improving detection accuracy.
 
 ## License
 

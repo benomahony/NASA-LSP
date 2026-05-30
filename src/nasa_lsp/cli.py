@@ -7,7 +7,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from nasa_lsp.analyzer import MAX_FUNCTION_LINES, MIN_ASSERTS_PER_FUNCTION, Diagnostic, analyze
+from nasa_lsp._languages import SUPPORTED_EXTENSIONS, language_for_suffix
+from nasa_lsp.analyzer import (
+    MAX_FUNCTION_LINES,
+    MIN_ASSERTS_PER_FUNCTION,
+    Diagnostic,
+    FunctionStat,
+    analyze,
+)
 
 app = typer.Typer()
 console = Console()
@@ -35,6 +42,33 @@ def should_exclude(path: Path) -> bool:
     return any(part in EXCLUDED_DIRS or part.endswith(".egg-info") for part in path.parts)
 
 
+def is_supported(path: Path) -> bool:
+    assert isinstance(path, Path)
+    assert path.name
+    return path.suffix.lower() in SUPPORTED_EXTENSIONS
+
+
+def discover_files(paths: list[Path]) -> list[Path]:
+    """Collect all supported source files from the given files and directories."""
+    assert isinstance(paths, list)
+    assert all(isinstance(p, Path) for p in paths)
+    files: list[Path] = []
+    for p in paths:
+        if p.is_file() and is_supported(p) and not should_exclude(p):
+            files.append(p)
+        elif p.is_dir() and not should_exclude(p):
+            files.extend(f for f in p.rglob("*") if f.is_file() and is_supported(f) and not should_exclude(f))
+    return files
+
+
+def analyze_file(path: Path) -> tuple[list[Diagnostic], list[FunctionStat]]:
+    """Analyze a file using the language inferred from its extension."""
+    assert isinstance(path, Path)
+    language = language_for_suffix(path.suffix)
+    assert language is not None, f"unsupported file passed to analyze_file: {path}"
+    return analyze(path.read_text(), language)
+
+
 def format_diagnostic(path: Path, diag: Diagnostic) -> str:
     assert path
     assert diag
@@ -59,23 +93,18 @@ def print_diagnostic(path: Path, diag: Diagnostic, cwd: Path) -> None:
 def lint(
     paths: Annotated[list[Path] | None, typer.Argument(help="Files or directories to lint")] = None,
 ) -> None:
-    """Check Python files for NASA Power of 10 rule violations."""
+    """Check source files for NASA Power of 10 rule violations."""
     assert console is not None
     assert isinstance(paths, list | None)
     cwd = Path.cwd()
     if paths is None:
         paths = [cwd]
 
-    files: list[Path] = []
-    for p in paths:
-        if p.is_file() and p.suffix == ".py" and not should_exclude(p):
-            files.append(p)
-        elif p.is_dir() and not should_exclude(p):
-            files.extend(f for f in p.rglob("*.py") if not should_exclude(f))
+    files = discover_files(paths)
 
     all_diagnostics: list[tuple[Path, Diagnostic]] = []
     for file in sorted(files):
-        diagnostics, _ = analyze(file.read_text())
+        diagnostics, _ = analyze_file(file)
         all_diagnostics.extend((file, diag) for diag in diagnostics)
 
     for file, diag in all_diagnostics:
@@ -104,12 +133,7 @@ def stats(
     if paths is None:
         paths = [cwd]
 
-    files: list[Path] = []
-    for p in paths:
-        if p.is_file() and p.suffix == ".py" and not should_exclude(p):
-            files.append(p)
-        elif p.is_dir() and not should_exclude(p):
-            files.extend(f for f in p.rglob("*.py") if not should_exclude(f))
+    files = discover_files(paths)
 
     table = Table(title="NASA Function Audit", header_style="bold magenta")
     table.add_column("Location", style="dim")
@@ -118,7 +142,7 @@ def stats(
     table.add_column("Asserts", justify="right")
 
     for file in sorted(files):
-        _, func_stats = analyze(file.read_text())
+        _, func_stats = analyze_file(file)
         for s in func_stats:
             rel_path = file.relative_to(cwd) if file.is_relative_to(cwd) else file
 
