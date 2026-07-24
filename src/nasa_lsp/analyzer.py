@@ -363,6 +363,30 @@ class NasaVisitor(ast.NodeVisitor):
                     message = f"Assertion on total-op result '{target}' rarely fails; confirm the invariant (NASA05-M4)"
                     self._add_diag(self._range_for_node(current), message, "NASA05-M4")
 
+    def _check_guaranteed_length(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        for body in self._statement_lists(node):
+            for prev, current in pairwise(body):
+                if not (isinstance(current, ast.Assert) and isinstance(prev, ast.Assign) and len(prev.targets) == 1):
+                    continue
+                value = prev.value
+                if not (isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id == "len"):
+                    continue
+                test = current.test
+                if not (isinstance(test, ast.Compare) and len(test.ops) == 1):
+                    continue
+                target = ast.unparse(prev.targets[0])
+                bound = test.comparators[0]
+                if ast.unparse(test.left) != target or not isinstance(bound, ast.Constant):
+                    continue
+                non_negative = (isinstance(test.ops[0], ast.GtE) and bound.value == 0) or (
+                    isinstance(test.ops[0], ast.Gt) and bound.value == -1
+                )
+                if non_negative:
+                    message = f"Post-condition '{target}' is guaranteed by len() and can never fail (NASA05-M5)"
+                    self._add_diag(self._range_for_node(current), message, "NASA05-M5")
+
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
         assert func_name, "Function must have a name"
@@ -406,6 +430,7 @@ class NasaVisitor(ast.NodeVisitor):
         self._check_just_assigned(node)
         self._check_redundant_none(node)
         self._check_total_op_truthiness(node)
+        self._check_guaranteed_length(node)
 
         if self._check_recursion(node):
             self._add_diag(
