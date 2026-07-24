@@ -520,3 +520,48 @@ def f(value):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
     assert diagnostics == []
+
+
+def test_nasa05_m2_flags_equality_after_literal_assignment() -> None:
+    code = """
+class C:
+    def __init__(self):
+        self.findings = {}
+        assert self.findings == {}, "findings must start empty"
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M2"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M2"]
+
+
+def test_nasa05_m2_flags_not_none_after_constant_assignment() -> None:
+    code = """
+def f():
+    x = 5
+    assert x is not None, "x must be set"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M2"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M2"]
+
+
+def test_nasa05_m2_ignores_assert_after_computed_value() -> None:
+    code = """
+def f():
+    x = compute()
+    assert x is not None, "compute may return None"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M2"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m2_ignores_assert_not_adjacent_to_assignment() -> None:
+    code = """
+def f(y):
+    x = 5
+    y = do(x)
+    assert y is not None, "y comes from external call"
+    return y
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M2"}))
+    assert diagnostics == []
