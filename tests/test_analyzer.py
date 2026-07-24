@@ -641,3 +641,36 @@ def f(kind):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M4"}))
     assert diagnostics == []
+
+
+def test_nasa05_m5_flags_non_negative_length_postcondition() -> None:
+    code = """
+def f(x):
+    n = len(x)
+    assert n >= 0, "length must be non-negative"
+    return n
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M5"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M5"]
+
+
+def test_nasa05_m5_ignores_positive_length_check() -> None:
+    code = """
+def f(x):
+    n = len(x)
+    assert n > 0, "must be non-empty"
+    return n
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M5"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m5_ignores_non_negative_check_on_arbitrary_value() -> None:
+    code = """
+def f(x):
+    n = compute(x)
+    assert n >= 0, "compute may return a negative value"
+    return n
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M5"}))
+    assert diagnostics == []
