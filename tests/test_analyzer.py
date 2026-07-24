@@ -674,3 +674,26 @@ def f(x):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M5"}))
     assert diagnostics == []
+
+
+def test_nasa05_count_excludes_flagged_assertions_when_m_rule_enabled() -> None:
+    code = """
+def f(value: bool) -> bool:
+    assert isinstance(value, bool), "restates type"
+    assert isinstance(value, bool), "restates type again"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-M1"}))
+    codes = [d.code for d in diagnostics]
+    assert "NASA05" in codes
+
+
+def test_nasa05_count_keeps_flagged_assertions_when_m_rule_disabled() -> None:
+    code = """
+def f(value: bool) -> bool:
+    assert isinstance(value, bool), "restates type"
+    assert isinstance(value, bool), "restates type again"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05"}))
+    assert diagnostics == []

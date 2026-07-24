@@ -426,11 +426,14 @@ class NasaVisitor(ast.NodeVisitor):
         assert_count = self._count_asserts(node)
         self.stats.append(FunctionStat(func_name, node.lineno, line_count, assert_count))
 
+        before = len(self.diagnostics)
         self._check_restated_type(node)
         self._check_just_assigned(node)
         self._check_redundant_none(node)
         self._check_total_op_truthiness(node)
         self._check_guaranteed_length(node)
+        flagged_lines = {d.range.start.line for d in self.diagnostics[before:] if d.code.startswith("NASA05-M")}
+        meaningful_asserts = max(0, assert_count - len(flagged_lines))
 
         if self._check_recursion(node):
             self._add_diag(
@@ -446,11 +449,11 @@ class NasaVisitor(ast.NodeVisitor):
                 "NASA04",
             )
 
-        if assert_count < MIN_ASSERTS_PER_FUNCTION:
+        if meaningful_asserts < MIN_ASSERTS_PER_FUNCTION:
             self._add_diag(
                 func_name_range,
                 (
-                    f"Function '{func_name}' has only {assert_count} assert(s); "
+                    f"Function '{func_name}' has only {meaningful_asserts} assert(s) that can fail on a bug; "
                     f"expected at least {MIN_ASSERTS_PER_FUNCTION} (NASA05)"
                 ),
                 "NASA05",
