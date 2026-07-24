@@ -3,12 +3,14 @@ from __future__ import annotations
 import ast
 import tomllib
 from dataclasses import dataclass
+from itertools import pairwise
 from pathlib import Path
 from typing import Final, cast, override
 
 MAX_FUNCTION_LINES: Final = 60
 MIN_ASSERTS_PER_FUNCTION: Final = 2
 ISINSTANCE_ARG_COUNT: Final = 2
+CONSTANT_CONSTRUCTORS: Final = frozenset({"dict", "list", "set", "tuple", "frozenset"})
 DEFAULT_ENABLED_RULES: Final = frozenset(
     {
         "NASA01-A",
@@ -262,6 +264,64 @@ class NasaVisitor(ast.NodeVisitor):
                     "NASA05-M1",
                 )
 
+    @staticmethod
+    def _statement_lists(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[list[ast.stmt]]:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        lists: list[list[ast.stmt]] = []
+        stack: list[list[ast.stmt]] = [node.body]
+        while stack:
+            body = stack.pop()
+            lists.append(body)
+            for stmt in body:
+                match stmt:
+                    case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.ClassDef():
+                        pass
+                    case ast.If() | ast.For() | ast.AsyncFor() | ast.While():
+                        stack.extend([stmt.body, stmt.orelse])
+                    case ast.With() | ast.AsyncWith():
+                        stack.append(stmt.body)
+                    case ast.Try() | ast.TryStar():
+                        stack.extend([stmt.body, stmt.orelse, stmt.finalbody])
+                        stack.extend([handler.body for handler in stmt.handlers])
+                    case ast.Match():
+                        stack.extend([branch.body for branch in stmt.cases])
+                    case _:
+                        pass
+        return lists
+
+    def _assert_always_holds(self, test: ast.expr, target: str, value: ast.expr) -> bool:
+        assert test is not None, "Assert test node must not be None"
+        assert target, "Assignment target text must not be empty"
+        if isinstance(test, (ast.Name, ast.Attribute)) and ast.unparse(test) == target:
+            return isinstance(value, ast.Constant) and bool(value.value)
+        if not (isinstance(test, ast.Compare) and len(test.ops) == 1 and ast.unparse(test.left) == target):
+            return False
+        op, comparator = test.ops[0], test.comparators[0]
+        if isinstance(op, ast.IsNot) and isinstance(comparator, ast.Constant) and comparator.value is None:
+            return not (isinstance(value, ast.Constant) and value.value is None)
+        return isinstance(op, ast.Eq) and ast.unparse(comparator) == ast.unparse(value)
+
+    def _check_just_assigned(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        for body in self._statement_lists(node):
+            for prev, current in pairwise(body):
+                if not (isinstance(current, ast.Assert) and isinstance(prev, ast.Assign) and len(prev.targets) == 1):
+                    continue
+                value = prev.value
+                is_literal = isinstance(value, (ast.Constant, ast.Dict, ast.List, ast.Set, ast.Tuple)) or (
+                    isinstance(value, ast.Call)
+                    and isinstance(value.func, ast.Name)
+                    and value.func.id in CONSTANT_CONSTRUCTORS
+                )
+                if not is_literal:
+                    continue
+                target = ast.unparse(prev.targets[0])
+                if self._assert_always_holds(current.test, target, prev.value):
+                    message = f"Assertion always holds: '{target}' was just assigned a constant literal (NASA05-M2)"
+                    self._add_diag(self._range_for_node(current), message, "NASA05-M2")
+
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
         assert func_name, "Function must have a name"
@@ -302,6 +362,7 @@ class NasaVisitor(ast.NodeVisitor):
         self.stats.append(FunctionStat(func_name, node.lineno, line_count, assert_count))
 
         self._check_restated_type(node)
+        self._check_just_assigned(node)
 
         if self._check_recursion(node):
             self._add_diag(
