@@ -8,6 +8,7 @@ from typing import Final, cast, override
 
 MAX_FUNCTION_LINES: Final = 60
 MIN_ASSERTS_PER_FUNCTION: Final = 2
+ISINSTANCE_ARG_COUNT: Final = 2
 DEFAULT_ENABLED_RULES: Final = frozenset(
     {
         "NASA01-A",
@@ -49,21 +50,20 @@ class FunctionStat:
 
 def _extract_rules_from_toml(data: dict[str, object]) -> frozenset[str] | None:
     """Extract NASA rules list from parsed TOML data."""
-    assert isinstance(data, dict), "TOML data must be a dict"
-    assert data is not None, "TOML data must not be None"
     if "tool" in data and isinstance(data["tool"], dict):
         tool = cast("dict[str, object]", data["tool"])
         if "nasa-lsp" in tool and isinstance(tool["nasa-lsp"], dict):
             nasa = cast("dict[str, object]", tool["nasa-lsp"])
             if "rules" in nasa and isinstance(nasa["rules"], list):
-                return frozenset(cast("list[str]", nasa["rules"]))
+                rules = cast("list[str]", nasa["rules"])
+                assert all(isinstance(r, str) for r in rules), "NASA rule entries must be strings"
+                assert all(rules), "NASA rule names must be non-empty"
+                return frozenset(rules)
     return None
 
 
 def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
     """Load enabled rules from pyproject.toml, searching up from start_path."""
-    assert start_path is None or isinstance(start_path, Path), "start_path must be None or Path"
-    assert DEFAULT_ENABLED_RULES, "DEFAULT_ENABLED_RULES must not be empty"
 
     search_dir = Path.cwd() if start_path is None else start_path
     if start_path is not None:
@@ -76,6 +76,7 @@ def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
         return DEFAULT_ENABLED_RULES
     if search_dir.is_file():
         search_dir = search_dir.parent
+    assert not search_dir.is_file(), "search_dir must be a directory before walking parents"
 
     current = search_dir
     for _ in range(20):
@@ -86,6 +87,7 @@ def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
                     data = tomllib.load(f)
                 rules = _extract_rules_from_toml(data)
                 if rules is not None:
+                    assert rules, "empty rules list would silently disable every NASA check"
                     return rules
             except (tomllib.TOMLDecodeError, OSError):
                 pass
@@ -98,10 +100,10 @@ def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
 
 class NasaVisitor(ast.NodeVisitor):
     def __init__(self, text: str, enabled_rules: frozenset[str] | None = None) -> None:
-        assert text, "Text parameter must not be empty"
-        assert isinstance(text, str), "Text must be a string"
+        assert enabled_rules is None or enabled_rules, "enabled_rules, if provided, must be non-empty"
         self.text: str = text
         self.lines: list[str] = text.splitlines()
+        assert len(self.lines) <= len(text) + 1, "line count cannot exceed character count plus one"
         self.diagnostics: list[Diagnostic] = []
         self.stats: list[FunctionStat] = []
         self.enabled_rules: frozenset[str] = enabled_rules if enabled_rules is not None else DEFAULT_ENABLED_RULES
@@ -204,6 +206,62 @@ class NasaVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
+    @staticmethod
+    def _param_annotations(node: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, ast.expr]:
+        assert node is not None, "Function node must not be None"
+        assert node.args is not None, "Function node must have arguments"
+        args = node.args
+        return {a.arg: a.annotation for a in (*args.posonlyargs, *args.args, *args.kwonlyargs) if a.annotation}
+
+    def _iter_function_asserts(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.Assert]:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        found: list[ast.Assert] = []
+        for stmt in node.body:
+            if isinstance(stmt, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            found.extend(sub for sub in ast.walk(stmt) if isinstance(sub, ast.Assert))
+        return found
+
+    @staticmethod
+    def _annotation_matches_type(annotation: ast.expr, type_node: ast.expr) -> bool:
+        assert annotation is not None, "Annotation node must not be None"
+        assert type_node is not None, "Type node must not be None"
+        target = ast.unparse(type_node)
+        parts: list[ast.expr] = []
+        stack = [annotation]
+        while stack:
+            current = stack.pop()
+            if isinstance(current, ast.BinOp) and isinstance(current.op, ast.BitOr):
+                stack.extend((current.left, current.right))
+            else:
+                parts.append(current)
+        non_none = [ast.unparse(p) for p in parts if ast.unparse(p) != "None"]
+        return non_none == [target]
+
+    def _check_restated_type(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        params = self._param_annotations(node)
+        for stmt in self._iter_function_asserts(node):
+            test = stmt.test
+            if not (isinstance(test, ast.Call) and isinstance(test.func, ast.Name) and test.func.id == "isinstance"):
+                continue
+            if len(test.args) != ISINSTANCE_ARG_COUNT:
+                continue
+            subject, type_node = test.args
+            if not (isinstance(subject, ast.Name) and subject.id in params):
+                continue
+            if self._annotation_matches_type(params[subject.id], type_node):
+                self._add_diag(
+                    self._range_for_node(stmt),
+                    (
+                        f"Assertion restates parameter type '{ast.unparse(type_node)}'; "
+                        "assert a domain invariant instead (NASA05-M1)"
+                    ),
+                    "NASA05-M1",
+                )
+
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
         assert func_name, "Function must have a name"
@@ -242,6 +300,8 @@ class NasaVisitor(ast.NodeVisitor):
         line_count = node.end_lineno - node.lineno + 1
         assert_count = self._count_asserts(node)
         self.stats.append(FunctionStat(func_name, node.lineno, line_count, assert_count))
+
+        self._check_restated_type(node)
 
         if self._check_recursion(node):
             self._add_diag(
