@@ -565,3 +565,35 @@ def f(y):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M2"}))
     assert diagnostics == []
+
+
+def test_nasa05_m3_flags_none_check_before_isinstance() -> None:
+    code = """
+def f(x):
+    assert x is not None, "x must not be None"
+    assert isinstance(x, int), "x must be an int"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M3"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M3"]
+
+
+def test_nasa05_m3_ignores_none_check_for_different_variable() -> None:
+    code = """
+def f(x, y):
+    assert x is not None, "x must not be None"
+    assert isinstance(y, int), "y must be an int"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M3"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m3_ignores_lone_none_check() -> None:
+    code = """
+def f(x):
+    assert x is not None, "x must not be None"
+    return len(x)
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M3"}))
+    assert diagnostics == []
