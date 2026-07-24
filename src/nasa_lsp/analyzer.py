@@ -322,6 +322,27 @@ class NasaVisitor(ast.NodeVisitor):
                     message = f"Assertion always holds: '{target}' was just assigned a constant literal (NASA05-M2)"
                     self._add_diag(self._range_for_node(current), message, "NASA05-M2")
 
+    def _check_redundant_none(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        for body in self._statement_lists(node):
+            for prev, current in pairwise(body):
+                if not (isinstance(prev, ast.Assert) and isinstance(current, ast.Assert)):
+                    continue
+                check, nxt = prev.test, current.test
+                if not (isinstance(check, ast.Compare) and len(check.ops) == 1 and isinstance(check.ops[0], ast.IsNot)):
+                    continue
+                end = check.comparators[0]
+                if not (isinstance(end, ast.Constant) and end.value is None):
+                    continue
+                if not (isinstance(nxt, ast.Call) and isinstance(nxt.func, ast.Name) and nxt.func.id == "isinstance"):
+                    continue
+                subject = ast.unparse(check.left)
+                if len(nxt.args) != ISINSTANCE_ARG_COUNT or subject != ast.unparse(nxt.args[0]):
+                    continue
+                message = f"Redundant None check on '{subject}'; the isinstance below already excludes None (NASA05-M3)"
+                self._add_diag(self._range_for_node(prev), message, "NASA05-M3")
+
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
         assert func_name, "Function must have a name"
@@ -363,6 +384,7 @@ class NasaVisitor(ast.NodeVisitor):
 
         self._check_restated_type(node)
         self._check_just_assigned(node)
+        self._check_redundant_none(node)
 
         if self._check_recursion(node):
             self._add_diag(
