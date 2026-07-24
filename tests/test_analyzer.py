@@ -597,3 +597,47 @@ def f(x):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M3"}))
     assert diagnostics == []
+
+
+def test_nasa05_m4_flags_truthiness_of_str_result() -> None:
+    code = """
+def f(kind):
+    name = str(kind)
+    assert name, "kind name must be non-empty"
+    return name
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M4"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M4"]
+
+
+def test_nasa05_m4_flags_truthiness_of_fstring_result() -> None:
+    code = """
+def f(kind):
+    label = f"kind-{kind}"
+    assert label, "label must be non-empty"
+    return label
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M4"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M4"]
+
+
+def test_nasa05_m4_ignores_truthiness_of_arbitrary_call() -> None:
+    code = """
+def f(x):
+    value = compute(x)
+    assert value, "compute must return a truthy value"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M4"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m4_ignores_non_truthiness_assert() -> None:
+    code = """
+def f(kind):
+    name = str(kind)
+    assert name == "expected", "name must match"
+    return name
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M4"}))
+    assert diagnostics == []
