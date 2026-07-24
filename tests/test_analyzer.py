@@ -480,3 +480,43 @@ def empty():
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
     assert diagnostics[0].code == "NASA05"
+
+
+def test_nasa05_m1_flags_isinstance_restating_annotation() -> None:
+    code = """
+def f(value: bool) -> bool:
+    assert isinstance(value, bool), "value must be a bool"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert len(diagnostics) == 1
+    assert diagnostics[0].code == "NASA05-M1"
+    assert "bool" in diagnostics[0].message
+
+
+def test_nasa05_m1_flags_isinstance_restating_optional_annotation() -> None:
+    code = """
+from pathlib import Path
+def f(path: Path | None) -> None:
+    assert isinstance(path, Path), "path must be a Path"
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M1"]
+
+
+def test_nasa05_m1_ignores_isinstance_on_wider_annotation() -> None:
+    code = """
+def f(value: object) -> None:
+    assert isinstance(value, int), "value must be int"
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m1_ignores_isinstance_on_unannotated_param() -> None:
+    code = """
+def f(value):
+    assert isinstance(value, int), "value must be int"
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert diagnostics == []
