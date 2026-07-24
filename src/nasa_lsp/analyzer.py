@@ -11,6 +11,7 @@ MAX_FUNCTION_LINES: Final = 60
 MIN_ASSERTS_PER_FUNCTION: Final = 2
 ISINSTANCE_ARG_COUNT: Final = 2
 CONSTANT_CONSTRUCTORS: Final = frozenset({"dict", "list", "set", "tuple", "frozenset"})
+TOTAL_STR_OPS: Final = frozenset({"str", "repr", "format", "ascii"})
 DEFAULT_ENABLED_RULES: Final = frozenset(
     {
         "NASA01-A",
@@ -343,6 +344,25 @@ class NasaVisitor(ast.NodeVisitor):
                 message = f"Redundant None check on '{subject}'; the isinstance below already excludes None (NASA05-M3)"
                 self._add_diag(self._range_for_node(prev), message, "NASA05-M3")
 
+    def _check_total_op_truthiness(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        for body in self._statement_lists(node):
+            for prev, current in pairwise(body):
+                if not (isinstance(current, ast.Assert) and isinstance(prev, ast.Assign) and len(prev.targets) == 1):
+                    continue
+                value = prev.value
+                is_str_call = (
+                    isinstance(value, ast.Call) and isinstance(value.func, ast.Name) and value.func.id in TOTAL_STR_OPS
+                )
+                if not (isinstance(value, ast.JoinedStr) or is_str_call):
+                    continue
+                test = current.test
+                target = ast.unparse(prev.targets[0])
+                if isinstance(test, (ast.Name, ast.Attribute)) and ast.unparse(test) == target:
+                    message = f"Assertion on total-op result '{target}' rarely fails; confirm the invariant (NASA05-M4)"
+                    self._add_diag(self._range_for_node(current), message, "NASA05-M4")
+
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
         assert func_name, "Function must have a name"
@@ -385,6 +405,7 @@ class NasaVisitor(ast.NodeVisitor):
         self._check_restated_type(node)
         self._check_just_assigned(node)
         self._check_redundant_none(node)
+        self._check_total_op_truthiness(node)
 
         if self._check_recursion(node):
             self._add_diag(
