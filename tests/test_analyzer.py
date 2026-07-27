@@ -697,3 +697,57 @@ def f(value: bool) -> bool:
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05"}))
     assert diagnostics == []
+
+
+def test_ignore_comment_suppresses_specific_code() -> None:
+    code = """
+def f(value: bool) -> bool:
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-M1]
+    assert value in (True, False), "real check"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert diagnostics == []
+
+
+def test_ignore_comment_blanket_suppresses_all_codes_on_line() -> None:
+    code = """
+def f(value: bool) -> bool:
+    assert isinstance(value, bool), "restates"  # nasa: ignore
+    assert value in (True, False), "real check"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert diagnostics == []
+
+
+def test_ignore_comment_for_other_code_does_not_suppress() -> None:
+    code = """
+def f(value: bool) -> bool:
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA04]
+    assert value in (True, False), "real check"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M1"]
+
+
+def test_ignore_comment_suppresses_function_level_rule_on_def_line() -> None:
+    code = """
+def no_asserts():  # nasa: ignore[NASA05]
+    return 1
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05"}))
+    assert diagnostics == []
+
+
+def test_ignore_comment_only_affects_its_own_line() -> None:
+    code = """
+def f(value: bool, other: bool) -> bool:
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-M1]
+    assert isinstance(other, bool), "restates too"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert len(diagnostics) == 1
+    assert diagnostics[0].range.start.line == 3
