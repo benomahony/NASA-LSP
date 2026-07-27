@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import ast
+import io
+import re
+import tokenize
 import tomllib
 from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
 from typing import Final, cast, override
+
+IGNORE_COMMENT_PATTERN: Final = r"#\s*nasa:\s*ignore\b(?:\s*\[([^\]]*)\])?"
 
 MAX_FUNCTION_LINES: Final = 60
 MIN_ASSERTS_PER_FUNCTION: Final = 2
@@ -110,6 +115,27 @@ class NasaVisitor(ast.NodeVisitor):
         self.diagnostics: list[Diagnostic] = []
         self.stats: list[FunctionStat] = []
         self.enabled_rules: frozenset[str] = enabled_rules if enabled_rules is not None else DEFAULT_ENABLED_RULES
+        self.ignored: dict[int, frozenset[str] | None] = self._parse_suppressions(text)
+
+    @staticmethod
+    def _parse_suppressions(text: str) -> dict[int, frozenset[str] | None]:
+        result: dict[int, frozenset[str] | None] = {}
+        try:
+            tokens = list(tokenize.generate_tokens(io.StringIO(text).readline))
+        except (tokenize.TokenError, IndentationError, SyntaxError):
+            return result
+        for token in tokens:
+            if token.type != tokenize.COMMENT:
+                continue
+            match = re.search(IGNORE_COMMENT_PATTERN, token.string, re.IGNORECASE)
+            if match is None:
+                continue
+            raw = match.group(1)
+            codes = frozenset(c.strip() for c in raw.split(",") if c.strip()) if raw else None
+            result[token.start[0] - 1] = codes
+        assert all(line >= 0 for line in result), "suppression line indices must be non-negative"
+        assert all(codes is None or codes for codes in result.values()), "specific suppressions list >= 1 code"
+        return result
 
     @staticmethod
     def _pos(lineno: int, col: int) -> Position:
@@ -157,8 +183,13 @@ class NasaVisitor(ast.NodeVisitor):
         assert rng is not None, "Range must not be None"
         assert message, "Message must not be empty"
         assert code, "Code must not be empty"
-        if code in self.enabled_rules:
-            self.diagnostics.append(Diagnostic(range=rng, message=message, code=code))
+        if code not in self.enabled_rules:
+            return
+        if rng.start.line in self.ignored:
+            suppressed = self.ignored[rng.start.line]
+            if suppressed is None or code in suppressed:
+                return
+        self.diagnostics.append(Diagnostic(range=rng, message=message, code=code))
 
     @override
     def visit_Call(self, node: ast.Call) -> None:
