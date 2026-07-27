@@ -756,3 +756,56 @@ def f(value: bool, other: bool) -> bool:
 def test_analyze_does_not_crash_on_undecodable_source() -> None:
     diagnostics, _ = analyze("\rº")
     assert diagnostics == []
+
+
+def test_nasa05_m1_ignores_malformed_isinstance_arity() -> None:
+    code = """
+def f(value: int) -> None:
+    assert isinstance(value), "single-arg isinstance"
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m2_flags_bare_truthiness_after_constant() -> None:
+    code = """
+def f():
+    x = 5
+    assert x, "x was just set"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M2"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M2"]
+
+
+def test_nasa05_m3_ignores_is_not_check_against_non_none() -> None:
+    code = """
+def f(x):
+    assert x is not True, "not the sentinel"
+    assert isinstance(x, int), "x must be int"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M3"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m5_ignores_chained_length_comparison() -> None:
+    code = """
+def f(x):
+    n = len(x)
+    assert 0 <= n <= 10, "bounded"
+    return n
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M5"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m5_ignores_length_bound_on_other_variable() -> None:
+    code = """
+def f(x, k):
+    n = len(x)
+    assert k >= 0, "k is unrelated to n"
+    return n
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M5"}))
+    assert diagnostics == []
