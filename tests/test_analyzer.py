@@ -751,3 +751,8 @@ def f(value: bool, other: bool) -> bool:
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
     assert len(diagnostics) == 1
     assert diagnostics[0].range.start.line == 3
+
+
+def test_analyze_does_not_crash_on_undecodable_source() -> None:
+    diagnostics, _ = analyze("\rº")
+    assert diagnostics == []

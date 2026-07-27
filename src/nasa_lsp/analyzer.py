@@ -122,7 +122,7 @@ class NasaVisitor(ast.NodeVisitor):
         result: dict[int, frozenset[str] | None] = {}
         try:
             tokens = list(tokenize.generate_tokens(io.StringIO(text).readline))
-        except (tokenize.TokenError, IndentationError, SyntaxError):
+        except (tokenize.TokenError, SyntaxError, ValueError):
             return result
         for token in tokens:
             if token.type != tokenize.COMMENT:
