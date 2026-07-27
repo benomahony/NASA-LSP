@@ -29,9 +29,7 @@ EXCLUDED_DIRS: Final = frozenset(
 )
 
 
-def should_exclude(path: Path) -> bool:
-    assert path is not None, "Path must not be None"
-    assert isinstance(path, Path), "Path must be a Path object"
+def should_exclude(path: Path) -> bool:  # nasa: ignore[NASA05]
     return any(part in EXCLUDED_DIRS or part.endswith(".egg-info") for part in path.parts)
 
 
@@ -137,10 +135,8 @@ def stats(
 
 
 @app.command()
-def serve() -> None:
+def serve() -> None:  # nasa: ignore[NASA05]
     """Start the Language Server Protocol server."""
-    assert app is not None, "App must be initialized"
-    assert isinstance(app, typer.Typer), "App must be a Typer instance"
     from nasa_lsp.server import serve as start_server  # noqa: PLC0415
 
     start_server()

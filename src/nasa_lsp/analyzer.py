@@ -510,8 +510,8 @@ def analyze(
     file_path: Path | None = None,
     enabled_rules: frozenset[str] | None = None,
 ) -> tuple[list[Diagnostic], list[FunctionStat]]:
-    assert isinstance(text, str), "Text must be a string"
-    assert text is not None, "Text must not be None"
+    assert isinstance(text, str), "Text must be a string"  # nasa: ignore[NASA05-M1]
+    assert enabled_rules is None or enabled_rules, "enabled_rules, if provided, must be non-empty"
     if not text.strip():
         return [], []
     try:

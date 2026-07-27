@@ -34,6 +34,11 @@ rules = [
   "NASA04",    # Max function length
   "NASA05",    # Minimum assertions per function
   "NASA05-A",  # Assertions must have descriptive messages
+  "NASA05-M1", # Assertion restates a parameter type
+  "NASA05-M2", # Assertion can never fail (just-assigned constant)
+  "NASA05-M3", # None check made redundant by a following isinstance
+  "NASA05-M4", # Truthiness assertion on a total-operation result
+  "NASA05-M5", # Post-condition already guaranteed by len()
 ]
 
 [tool.ruff]
