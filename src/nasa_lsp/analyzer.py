@@ -14,6 +14,7 @@ IGNORE_COMMENT_PATTERN: Final = r"#\s*nasa:\s*ignore\b(?:\s*\[([^\]]*)\])?"
 
 MAX_FUNCTION_LINES: Final = 60
 MIN_ASSERTS_PER_FUNCTION: Final = 2
+MAX_PARENT_DEPTH: Final = 20
 ISINSTANCE_ARG_COUNT: Final = 2
 CONSTANT_CONSTRUCTORS: Final = frozenset({"dict", "list", "set", "tuple", "frozenset"})
 TOTAL_STR_OPS: Final = frozenset({"str", "repr", "format", "ascii"})
@@ -73,53 +74,57 @@ def rule_severity(code: str) -> str:
     return level
 
 
-def _extract_rules_from_toml(data: dict[str, object]) -> frozenset[str] | None:
-    """Extract NASA rules list from parsed TOML data."""
-    if "tool" in data and isinstance(data["tool"], dict):
-        tool = cast("dict[str, object]", data["tool"])
-        if "nasa-lsp" in tool and isinstance(tool["nasa-lsp"], dict):
-            nasa = cast("dict[str, object]", tool["nasa-lsp"])
-            if "rules" in nasa and isinstance(nasa["rules"], list):
-                rules = cast("list[str]", nasa["rules"])
-                assert all(isinstance(r, str) for r in rules), "NASA rule entries must be strings"
-                assert all(rules), "NASA rule names must be non-empty"
-                return frozenset(rules)
-    return None
+def _read_nasa_table(pyproject: Path) -> dict[str, object]:
+    """Parse the [tool.nasa-lsp] table from one pyproject.toml, or return an empty dict."""
+    assert pyproject.is_file(), "config path must be an existing file"
+    assert pyproject.suffix == ".toml", "config file must be a .toml file"
+    try:
+        with pyproject.open("rb") as f:
+            data = tomllib.load(f)
+    except (tomllib.TOMLDecodeError, OSError):
+        return {}
+    if not isinstance(data.get("tool"), dict):
+        return {}
+    tool = cast("dict[str, object]", data["tool"])
+    nasa = tool.get("nasa-lsp")
+    return cast("dict[str, object]", nasa) if isinstance(nasa, dict) else {}
 
 
-def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
-    """Load enabled rules from pyproject.toml, searching up from start_path."""
-
+def _nearest_nasa_config(start_path: Path | None) -> dict[str, object]:  # nasa: ignore[NASA05]
+    """Return the [tool.nasa-lsp] table from the nearest pyproject.toml, or an empty dict."""
     search_dir = Path.cwd() if start_path is None else start_path
     if start_path is not None:
         try:
             search_dir = start_path.resolve()
         except (OSError, RuntimeError):
-            return DEFAULT_ENABLED_RULES
-
+            return {}
     if not search_dir.exists():
-        return DEFAULT_ENABLED_RULES
+        return {}
     if search_dir.is_file():
         search_dir = search_dir.parent
     assert not search_dir.is_file(), "search_dir must be a directory before walking parents"
 
     current = search_dir
-    for _ in range(20):
+    for _ in range(MAX_PARENT_DEPTH):
         pyproject = current / "pyproject.toml"
-        if pyproject.is_file():
-            try:
-                with pyproject.open("rb") as f:
-                    data = tomllib.load(f)
-                rules = _extract_rules_from_toml(data)
-                if rules is not None:
-                    assert rules, "empty rules list would silently disable every NASA check"
-                    return rules
-            except (tomllib.TOMLDecodeError, OSError):
-                pass
+        if pyproject.is_file() and (table := _read_nasa_table(pyproject)):
+            return table
         if current.parent == current:
             break
         current = current.parent
 
+    return {}
+
+
+def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
+    """Load enabled rules from pyproject.toml, searching up from start_path."""
+    config = _nearest_nasa_config(start_path)
+    raw = config.get("rules")
+    if isinstance(raw, list) and raw:
+        rules = cast("list[str]", raw)
+        assert all(isinstance(r, str) for r in rules), "NASA rule entries must be strings"
+        assert all(rules), "NASA rule names must be non-empty"
+        return frozenset(rules)
     return DEFAULT_ENABLED_RULES
 
 
