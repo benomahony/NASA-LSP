@@ -7,12 +7,18 @@ from urllib.parse import unquote, urlparse
 from lsprotocol import types
 from pygls.lsp.server import LanguageServer
 
-from nasa_lsp.analyzer import Diagnostic, analyze
+from nasa_lsp.analyzer import Diagnostic, analyze, rule_severity
 
 if TYPE_CHECKING:
     from pygls.workspace import TextDocument
 
 server = LanguageServer("nasa-python-lsp", "0.2.0")
+
+LSP_SEVERITY = {
+    "error": types.DiagnosticSeverity.Error,
+    "warning": types.DiagnosticSeverity.Warning,
+    "information": types.DiagnosticSeverity.Information,
+}
 
 
 def to_lsp_diagnostic(diag: Diagnostic) -> types.Diagnostic:
@@ -25,7 +31,7 @@ def to_lsp_diagnostic(diag: Diagnostic) -> types.Diagnostic:
         ),
         message=diag.message,
         source="NASA",
-        severity=types.DiagnosticSeverity.Warning,
+        severity=LSP_SEVERITY[rule_severity(diag.code)],
         code=diag.code,
     )
 

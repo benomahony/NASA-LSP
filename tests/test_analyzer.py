@@ -6,6 +6,7 @@ from nasa_lsp.analyzer import (
     Position,
     Range,
     analyze,
+    rule_severity,
 )
 
 # For most tests, exclude NASA05-A since test code examples don't need assertion messages
@@ -809,3 +810,17 @@ def f(x, k):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M5"}))
     assert diagnostics == []
+
+
+def test_rule_severity_maps_documented_levels() -> None:
+    assert rule_severity("NASA05-M2") == "error"
+    assert rule_severity("NASA05") == "error"
+    assert rule_severity("NASA05-M1") == "warning"
+    assert rule_severity("NASA05-M3") == "warning"
+    assert rule_severity("NASA05-M4") == "information"
+    assert rule_severity("NASA05-M5") == "information"
+
+
+def test_rule_severity_defaults_to_warning_for_unknown_code() -> None:
+    assert rule_severity("NASA01-A") == "warning"
+    assert rule_severity("SOMETHING-ELSE") == "warning"

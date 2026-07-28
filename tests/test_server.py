@@ -132,3 +132,25 @@ def test_run_checks_with_syntax_error() -> None:
 
     assert published_diagnostics is not None
     assert len(published_diagnostics.diagnostics) == 0
+
+
+def _diag(code: str) -> Diagnostic:
+    return Diagnostic(
+        range=Range(start=Position(line=0, character=0), end=Position(line=0, character=1)),
+        message="msg",
+        code=code,
+    )
+
+
+def test_to_lsp_diagnostic_maps_error_severity() -> None:
+    assert to_lsp_diagnostic(_diag("NASA05-M2")).severity == types.DiagnosticSeverity.Error
+    assert to_lsp_diagnostic(_diag("NASA05")).severity == types.DiagnosticSeverity.Error
+
+
+def test_to_lsp_diagnostic_maps_information_severity() -> None:
+    assert to_lsp_diagnostic(_diag("NASA05-M4")).severity == types.DiagnosticSeverity.Information
+    assert to_lsp_diagnostic(_diag("NASA05-M5")).severity == types.DiagnosticSeverity.Information
+
+
+def test_to_lsp_diagnostic_defaults_unknown_code_to_warning() -> None:
+    assert to_lsp_diagnostic(_diag("NASA01-A")).severity == types.DiagnosticSeverity.Warning

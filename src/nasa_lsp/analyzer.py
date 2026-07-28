@@ -17,6 +17,15 @@ MIN_ASSERTS_PER_FUNCTION: Final = 2
 ISINSTANCE_ARG_COUNT: Final = 2
 CONSTANT_CONSTRUCTORS: Final = frozenset({"dict", "list", "set", "tuple", "frozenset"})
 TOTAL_STR_OPS: Final = frozenset({"str", "repr", "format", "ascii"})
+SEVERITY_LEVELS: Final = frozenset({"error", "warning", "information"})
+RULE_SEVERITY: Final[dict[str, str]] = {
+    "NASA05": "error",
+    "NASA05-M1": "warning",
+    "NASA05-M2": "error",
+    "NASA05-M3": "warning",
+    "NASA05-M4": "information",
+    "NASA05-M5": "information",
+}
 DEFAULT_ENABLED_RULES: Final = frozenset(
     {
         "NASA01-A",
@@ -54,6 +63,14 @@ class FunctionStat:
     line_start: int
     line_count: int
     assert_count: int
+
+
+def rule_severity(code: str) -> str:
+    """Return the diagnostic severity level for a rule code."""
+    assert code, "Rule code must not be empty"
+    level = RULE_SEVERITY.get(code, "warning")
+    assert level in SEVERITY_LEVELS, "severity must be a known LSP level"
+    return level
 
 
 def _extract_rules_from_toml(data: dict[str, object]) -> frozenset[str] | None:
