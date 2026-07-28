@@ -7,7 +7,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from nasa_lsp.analyzer import MAX_FUNCTION_LINES, MIN_ASSERTS_PER_FUNCTION, Diagnostic, analyze
+from nasa_lsp.analyzer import MAX_FUNCTION_LINES, MIN_ASSERTS_PER_FUNCTION, Diagnostic, analyze, rule_severity
 
 app = typer.Typer()
 console = Console()
@@ -38,7 +38,7 @@ def format_diagnostic(path: Path, diag: Diagnostic) -> str:
     assert diag is not None, "Diagnostic must not be None"
     line = diag.range.start.line + 1
     col = diag.range.start.character + 1
-    return f"{path}:{line}:{col}: {diag.code} {diag.message}"
+    return f"{path}:{line}:{col}: {rule_severity(diag.code)}: {diag.code} {diag.message}"
 
 
 def print_diagnostic(path: Path, diag: Diagnostic, cwd: Path) -> None:

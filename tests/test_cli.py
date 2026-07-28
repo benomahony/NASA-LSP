@@ -19,7 +19,7 @@ def test_format_diagnostic_basic() -> None:
         code="TEST01",
     )
     result = format_diagnostic(path, diag)
-    assert result == "/test/file.py:10:5: TEST01 Test message"
+    assert result == "/test/file.py:10:5: warning: TEST01 Test message"
     assert isinstance(result, str)
 
 
@@ -31,8 +31,18 @@ def test_format_diagnostic_first_line() -> None:
         code="ERR",
     )
     result = format_diagnostic(path, diag)
-    assert result == "file.py:1:1: ERR Error"
+    assert result == "file.py:1:1: warning: ERR Error"
     assert isinstance(result, str)
+
+
+def test_format_diagnostic_shows_error_severity() -> None:
+    path = Path("file.py")
+    diag = Diagnostic(
+        range=Range(start=Position(line=0, character=0), end=Position(line=0, character=5)),
+        message="never fails",
+        code="NASA05-M2",
+    )
+    assert format_diagnostic(path, diag) == "file.py:1:1: error: NASA05-M2 never fails"
 
 
 def test_lint_no_args_lints_cwd() -> None:
