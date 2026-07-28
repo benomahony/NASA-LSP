@@ -6,7 +6,14 @@ from tempfile import TemporaryDirectory
 from typer.testing import CliRunner
 
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.cli import EXCLUDED_DIRS, app, format_diagnostic, should_exclude
+from nasa_lsp.cli import (
+    EXCLUDED_DIRS,
+    app,
+    discover_files,
+    format_diagnostic,
+    matches_exclude,
+    should_exclude,
+)
 
 runner = CliRunner()
 
@@ -319,3 +326,24 @@ def test_serve_command_imports() -> None:
     result = runner.invoke(app, ["serve", "--help"])
     assert result.exit_code == 0
     assert "Language Server Protocol" in result.stdout
+
+
+def test_matches_exclude_by_segment() -> None:
+    assert matches_exclude(Path("proj/tests/test_x.py"), ("tests",)) is True
+    assert matches_exclude(Path("proj/src/x.py"), ("tests",)) is False
+
+
+def test_matches_exclude_by_name_glob() -> None:
+    assert matches_exclude(Path("src/conftest.py"), ("conftest.py",)) is True
+    assert matches_exclude(Path("src/x.pyi"), ("*.pyi",)) is True
+    assert matches_exclude(Path("src/x.py"), ("*.pyi",)) is False
+
+
+def test_discover_files_skips_excluded(tmp_path: Path) -> None:
+    (tmp_path / "src").mkdir()
+    (tmp_path / "tests").mkdir()
+    keep = tmp_path / "src" / "keep.py"
+    _ = keep.write_text("x = 1\n")
+    _ = (tmp_path / "tests" / "test_skip.py").write_text("x = 1\n")
+    found = discover_files([tmp_path], ("tests",))
+    assert found == [keep]

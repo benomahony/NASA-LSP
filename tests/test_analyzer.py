@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from nasa_lsp.analyzer import (
     DEFAULT_ENABLED_RULES,
     Diagnostic,
     Position,
     Range,
     analyze,
+    load_enabled_rules,
+    load_exclude_patterns,
     rule_severity,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # For most tests, exclude NASA05-A since test code examples don't need assertion messages
 RULES_WITHOUT_ASSERT_MESSAGES = DEFAULT_ENABLED_RULES - {"NASA05-A"}
@@ -824,3 +831,21 @@ def test_rule_severity_maps_documented_levels() -> None:
 def test_rule_severity_defaults_to_warning_for_unknown_code() -> None:
     assert rule_severity("NASA01-A") == "warning"
     assert rule_severity("SOMETHING-ELSE") == "warning"
+
+
+def test_load_exclude_patterns_reads_config(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\nexclude = ["tests", "*.pyi"]\n')
+    patterns = load_exclude_patterns(tmp_path)
+    assert patterns == ("tests", "*.pyi")
+
+
+def test_load_exclude_patterns_defaults_to_empty(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\nrules = ["NASA05"]\n')
+    patterns = load_exclude_patterns(tmp_path)
+    assert patterns == ()
+
+
+def test_load_enabled_rules_reads_config_after_refactor(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\nrules = ["NASA02", "NASA04"]\n')
+    rules = load_enabled_rules(tmp_path)
+    assert rules == frozenset({"NASA02", "NASA04"})
