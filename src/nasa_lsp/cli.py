@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from fnmatch import fnmatch
 from pathlib import Path
 from typing import Annotated, Final
 
@@ -7,7 +8,14 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from nasa_lsp.analyzer import MAX_FUNCTION_LINES, MIN_ASSERTS_PER_FUNCTION, Diagnostic, analyze, rule_severity
+from nasa_lsp.analyzer import (
+    MAX_FUNCTION_LINES,
+    MIN_ASSERTS_PER_FUNCTION,
+    Diagnostic,
+    analyze,
+    load_exclude_patterns,
+    rule_severity,
+)
 
 app = typer.Typer()
 console = Console()
@@ -31,6 +39,26 @@ EXCLUDED_DIRS: Final = frozenset(
 
 def should_exclude(path: Path) -> bool:  # nasa: ignore[NASA05]
     return any(part in EXCLUDED_DIRS or part.endswith(".egg-info") for part in path.parts)
+
+
+def matches_exclude(path: Path, patterns: tuple[str, ...]) -> bool:
+    assert path.name, "path must have a name component to match"
+    assert all(patterns), "exclude patterns must be non-empty"
+    posix = path.as_posix()
+    segments = frozenset(path.parts)
+    return any(pat in segments or fnmatch(posix, pat) or fnmatch(path.name, pat) for pat in patterns)
+
+
+def discover_files(paths: list[Path], exclude: tuple[str, ...]) -> list[Path]:
+    assert paths is not None, "paths must not be None"
+    assert exclude is not None, "exclude patterns must not be None"
+    files: list[Path] = []
+    for p in paths:
+        if p.is_file() and p.suffix == ".py" and not should_exclude(p) and not matches_exclude(p, exclude):
+            files.append(p)
+        elif p.is_dir() and not should_exclude(p):
+            files.extend(f for f in p.rglob("*.py") if not should_exclude(f) and not matches_exclude(f, exclude))
+    return sorted(files)
 
 
 def format_diagnostic(path: Path, diag: Diagnostic) -> str:
@@ -64,15 +92,10 @@ def lint(
     if paths is None:
         paths = [cwd]
 
-    files: list[Path] = []
-    for p in paths:
-        if p.is_file() and p.suffix == ".py" and not should_exclude(p):
-            files.append(p)
-        elif p.is_dir() and not should_exclude(p):
-            files.extend(f for f in p.rglob("*.py") if not should_exclude(f))
+    files = discover_files(paths, load_exclude_patterns(cwd))
 
     all_diagnostics: list[tuple[Path, Diagnostic]] = []
-    for file in sorted(files):
+    for file in files:
         diagnostics, _ = analyze(file.read_text(), file)
         all_diagnostics.extend((file, diag) for diag in diagnostics)
 
@@ -102,12 +125,7 @@ def stats(
     if paths is None:
         paths = [cwd]
 
-    files: list[Path] = []
-    for p in paths:
-        if p.is_file() and p.suffix == ".py" and not should_exclude(p):
-            files.append(p)
-        elif p.is_dir() and not should_exclude(p):
-            files.extend(f for f in p.rglob("*.py") if not should_exclude(f))
+    files = discover_files(paths, load_exclude_patterns(cwd))
 
     table = Table(title="NASA Function Audit", header_style="bold magenta")
     table.add_column("Location", style="dim")
@@ -115,7 +133,7 @@ def stats(
     table.add_column("Lines", justify="right")
     table.add_column("Asserts", justify="right")
 
-    for file in sorted(files):
+    for file in files:
         _, func_stats = analyze(file.read_text(), file)
         for s in func_stats:
             rel_path = file.relative_to(cwd) if file.is_relative_to(cwd) else file

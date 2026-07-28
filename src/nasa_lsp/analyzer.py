@@ -128,6 +128,18 @@ def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
     return DEFAULT_ENABLED_RULES
 
 
+def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:
+    """Load exclude glob patterns from pyproject.toml, searching up from start_path."""
+    config = _nearest_nasa_config(start_path)
+    raw = config.get("exclude")
+    if isinstance(raw, list) and raw:
+        patterns = cast("list[str]", raw)
+        assert all(isinstance(p, str) for p in patterns), "exclude patterns must be strings"
+        assert all(patterns), "exclude patterns must be non-empty"
+        return tuple(patterns)
+    return ()
+
+
 class NasaVisitor(ast.NodeVisitor):
     def __init__(self, text: str, enabled_rules: frozenset[str] | None = None) -> None:
         assert enabled_rules is None or enabled_rules, "enabled_rules, if provided, must be non-empty"

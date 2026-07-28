@@ -40,6 +40,8 @@ rules = [
   "NASA05-M4", # Truthiness assertion on a total-operation result
   "NASA05-M5", # Post-condition already guaranteed by len()
 ]
+# Paths excluded from linting (test suites use bare pytest asserts)
+exclude = ["tests"]
 
 [tool.ruff]
 target-version = "py313"
