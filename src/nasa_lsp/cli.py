@@ -155,6 +155,7 @@ def stats(
 @app.command()
 def serve() -> None:  # nasa: ignore[NASA05]
     """Start the Language Server Protocol server."""
+    # Imported lazily so `nasa lint` never loads pygls; enforced by tests/test_architecture.py.
     from nasa_lsp.server import serve as start_server  # noqa: PLC0415
 
     start_server()
