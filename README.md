@@ -112,7 +112,8 @@ with examples.
 
 ## Example Violations
 
-```python def process_data(items):
+```python
+def process_data(items):
     while True:
         item = items.pop()
         if not item:
@@ -123,7 +124,8 @@ This code violates NASA02 with an unbounded loop and NASA05 with no assertions.
 
 Fixed version:
 
-```python def process_data(items):
+```python
+def process_data(items):
     assert items, "there must be items to process"
 
     max_iterations = len(items)

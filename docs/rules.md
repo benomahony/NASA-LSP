@@ -77,36 +77,50 @@ All of these except `NASA05-A` are opt-in; enable them under `[tool.nasa-lsp].ru
 
 **NASA05-M6: simple isinstance() checks**
 
-A bare `isinstance()` assertion restates a type rather than a domain invariant, and a type checker already covers it. Assert the state you actually depend on instead.
+A bare `isinstance()` assertion restates a type rather than a domain invariant, and a type checker already covers it. Flagged:
 
 ```python
-# flagged
 def scale(factor):
     assert isinstance(factor, float), "factor must be a float"
-    ...
+    return factor * 2
+```
 
-# preferred
+Preferred — assert the state you actually depend on:
+
+```python
 def scale(factor):
     assert factor > 0, "scale factor must be positive"
-    ...
+    return factor * 2
 ```
 
 **NASA05-M7: compound assertions**
 
-An assertion should test one condition so that a failure pinpoints exactly what broke. A conjunction should be split into separate assertions; a disjunction (an alternative or nullable guard) should be replaced by the underlying invariant it is really protecting.
+An assertion should test one condition so that a failure pinpoints exactly what broke. A conjunction bundles independent checks — flagged:
 
 ```python
-# flagged — 'and' bundles two independent checks
-assert isinstance(x, int) and x > 0, "x must be a positive int"
-
-# preferred — each condition fails on its own
-assert x > 0, "x must be positive"
-
-# flagged — 'or' nullable guard just restates the type
-def main(argv):
-    assert argv is None or isinstance(argv, list), "argv is args or None"
-    ...
+def clamp(x):
+    assert isinstance(x, int) and x > 0, "x must be a positive int"
+    return x
 ```
+
+Preferred — one atomic condition each, so a failure names the broken invariant:
+
+```python
+def clamp(x):
+    assert x > 0, "x must be positive"
+    assert x < 100, "x must be below the limit"
+    return x
+```
+
+A disjunction is usually a nullable or alternative guard that just restates a type — flagged:
+
+```python
+def main(argv):
+    assert argv is None or isinstance(argv, list), "argv must be args or None"
+    return 0
+```
+
+The remedy for an `or` is not to split it (that changes the meaning) but to assert the underlying invariant directly — for example, resolve the `None` first and then assert what the resolved value must satisfy.
 
 ## Original NASA Power of 10 Rules
 

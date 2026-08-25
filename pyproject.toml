@@ -14,6 +14,7 @@ dev = [
   "mutmut>=3.2",
   "prek>=0.2.30",
   "pytest-cov>=7.0.0",
+  "pytest-examples>=0.0.18",
   "pytest>=8.0",
   "ruff>=0.11",
   "zensical>=0.0.17",
