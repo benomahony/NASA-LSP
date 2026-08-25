@@ -58,6 +58,105 @@ Enforces minimum of 2 assert statements per function to detect impossible condit
 
 **Rationale:** Statistics for industrial coding efforts indicate that unit tests often find at least one defect per 10 to 100 lines of written code. The odds of intercepting defects increase significantly with increasing assertion density.
 
+### Assertion quality sub-rules
+
+An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. All except `NASA05-A` are opt-in via `[tool.nasa-lsp].rules`.
+
+## Rule detection reference
+
+One example per rule; each block is run through the analyzer by `tests/test_doc_examples.py`, which also fails if a rule has no example.
+
+`NASA01-A` — call to a forbidden dynamic API:
+
+```python
+def f():
+    eval("expr")
+```
+
+`NASA01-B` — a function that calls itself:
+
+```python
+def f():
+    return f()
+```
+
+`NASA02` — an unbounded `while True` loop:
+
+```python
+def f():
+    while True:
+        pass
+```
+
+`NASA04` — a function whose body spans more than 60 lines (no example: the trigger is length alone).
+
+`NASA05` — fewer than two meaningful assertions:
+
+```python
+def f():
+    return 1
+```
+
+`NASA05-A` — an assertion with no message:
+
+```python
+def f(x):
+    assert x > 0
+```
+
+`NASA05-M1` — an assertion restating a parameter's annotation:
+
+```python
+def f(x: int):
+    assert isinstance(x, int), "x must be an int"
+```
+
+`NASA05-M2` — an assertion on a value that was just assigned a literal:
+
+```python
+def f():
+    x = 5
+    assert x is not None, "x must be set"
+```
+
+`NASA05-M3` — a `None` check made redundant by a following `isinstance`:
+
+```python
+def f(x):
+    assert x is not None, "x must be set"
+    assert isinstance(x, int), "x must be an int"
+```
+
+`NASA05-M4` — a truthiness assertion on a total string operation:
+
+```python
+def f(k):
+    name = str(k)
+    assert name, "name must be non-empty"
+```
+
+`NASA05-M5` — a post-condition already guaranteed by `len()`:
+
+```python
+def f(x):
+    n = len(x)
+    assert n >= 0, "length is non-negative"
+```
+
+`NASA05-M6` — a bare `isinstance()` type check:
+
+```python
+def f(x):
+    assert isinstance(x, int), "x must be an int"
+```
+
+`NASA05-M7` — a compound assertion joined by `and`:
+
+```python
+def f(x):
+    assert isinstance(x, int) and x > 0, "x must be a positive int"
+```
+
 ## Original NASA Power of 10 Rules
 
 The original rules were designed for C programming in safety-critical systems:

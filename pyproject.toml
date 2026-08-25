@@ -14,6 +14,7 @@ dev = [
   "mutmut>=3.2",
   "prek>=0.2.30",
   "pytest-cov>=7.0.0",
+  "pytest-examples>=0.0.18",
   "pytest>=8.0",
   "ruff>=0.11",
   "zensical>=0.0.17",
@@ -39,6 +40,8 @@ rules = [
   "NASA05-M3", # None check made redundant by a following isinstance
   "NASA05-M4", # Truthiness assertion on a total-operation result
   "NASA05-M5", # Post-condition already guaranteed by len()
+  "NASA05-M6", # Assertion is a simple isinstance() type check
+  "NASA05-M7", # Compound assertion should be split into separate asserts
 ]
 # Paths excluded from linting (test suites use bare pytest asserts)
 exclude = ["tests"]
