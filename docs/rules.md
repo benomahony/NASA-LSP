@@ -122,6 +122,33 @@ def main(argv):
 
 Splitting an `or` would change its meaning, so the remedy is to assert the underlying invariant directly — for example, resolve the `None` first and then assert what the resolved value must satisfy.
 
+## Rule detection reference
+
+The minimal snippet that triggers each rule, checked against the analyzer on every test run. A test (`tests/test_doc_examples.py`) enforces that every rule the linter can emit appears here, so a new rule cannot ship without a documented example.
+
+```python
+from nasa_lsp.analyzer import analyze
+
+cases = {
+    "NASA01-A": "def f():\n    eval('x')\n",
+    "NASA01-B": "def f():\n    return f()\n",
+    "NASA02": "def f():\n    while True:\n        pass\n",
+    "NASA04": "def f():\n" + "    pass\n" * 60,
+    "NASA05": "def f():\n    return 1\n",
+    "NASA05-A": "def f():\n    assert x\n",
+    "NASA05-M1": "def f(x: int):\n    assert isinstance(x, int), 'x'\n",
+    "NASA05-M2": "def f():\n    x = 5\n    assert x is not None, 'x'\n",
+    "NASA05-M3": "def f(x):\n    assert x is not None, 'x'\n    assert isinstance(x, int), 'x'\n",
+    "NASA05-M4": "def f(k):\n    name = str(k)\n    assert name, 'name'\n",
+    "NASA05-M5": "def f(x):\n    n = len(x)\n    assert n >= 0, 'n'\n",
+    "NASA05-M6": "def f(x):\n    assert isinstance(x, int), 'x'\n",
+    "NASA05-M7": "def f(x):\n    assert isinstance(x, int) and x > 0, 'x'\n",
+}
+for code, source in cases.items():
+    diagnostics, _ = analyze(source, enabled_rules=frozenset({code}))
+    assert [d.code for d in diagnostics] == [code], code
+```
+
 ## Original NASA Power of 10 Rules
 
 The original rules were designed for C programming in safety-critical systems:
