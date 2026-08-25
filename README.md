@@ -101,6 +101,15 @@ The LSP runs automatically on Python files and provides inline diagnostics as yo
 - `NASA02`: Unbounded while True loop
 - `NASA05`: Insufficient assertions in function
 
+Rule 5 also ships a family of assertion-*quality* checks. `NASA05-A` requires
+every assertion to carry a descriptive message, and `NASA05-M1`–`NASA05-M7`
+flag assertions that check nothing a static tool can't already prove — a bare
+type check, a value that was just assigned, a compound `and`/`or` test, and so
+on. A flagged assertion doesn't count toward the `NASA05` density minimum, so
+padding a function with weak asserts won't satisfy the rule. See
+[docs/rules.md](docs/rules.md#assertion-quality-sub-rules) for the full list
+with examples.
+
 ## Example Violations
 
 ```python def process_data(items):
@@ -115,15 +124,20 @@ This code violates NASA02 with an unbounded loop and NASA05 with no assertions.
 Fixed version:
 
 ```python def process_data(items):
-    assert items is not None
-    assert isinstance(items, list)
+    assert items, "there must be items to process"
 
     max_iterations = len(items)
     for i in range(max_iterations):
         if i >= len(items):
             break
         item = items[i]
+        assert item is not None, "queue entries must never be None"
 ```
+
+The assertions state *domain invariants* — the batch is non-empty, and no
+entry is `None` — rather than restating that `items` is a `list`. A bare
+`assert isinstance(items, list)` would be flagged by `NASA05-M6` and would not
+count toward the assertion-density minimum.
 
 ## SAFETY-CRITICAL CODING RULES
 

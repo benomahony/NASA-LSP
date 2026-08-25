@@ -58,6 +58,56 @@ Enforces minimum of 2 assert statements per function to detect impossible condit
 
 **Rationale:** Statistics for industrial coding efforts indicate that unit tests often find at least one defect per 10 to 100 lines of written code. The odds of intercepting defects increase significantly with increasing assertion density.
 
+### Assertion quality sub-rules
+
+The Power of 10 says an assertion must be able to fail on a real bug: *"Any assertion for which a static checking tool can prove that it can never fail or never hold violates this rule."* Meeting the density minimum with assertions that only restate a type, echo a value that was just assigned, or bundle several conditions together defeats the purpose. These sub-rules flag such assertions, and — crucially — **a flagged assertion is subtracted from the count that `NASA05` checks**, so weak asserts cannot pad a function to the minimum.
+
+| Code | Flags | Severity |
+|------|-------|----------|
+| `NASA05-A` | Assertion with no descriptive message | error |
+| `NASA05-M1` | Assertion restates a parameter's type annotation | warning |
+| `NASA05-M2` | Assertion can never fail — variable was just assigned a constant literal | error |
+| `NASA05-M3` | `is not None` check made redundant by a following `isinstance` on the same value | warning |
+| `NASA05-M4` | Truthiness assertion on a total operation (`str()`, `repr()`, an f-string) that rarely fails | information |
+| `NASA05-M5` | Post-condition already guaranteed by `len()` (e.g. `n >= 0`) | information |
+| `NASA05-M6` | Simple `isinstance()` type check | warning |
+| `NASA05-M7` | Compound assertion joined by `and` / `or` | warning |
+
+All of these except `NASA05-A` are opt-in; enable them under `[tool.nasa-lsp].rules` in `pyproject.toml`.
+
+**NASA05-M6: simple isinstance() checks**
+
+A bare `isinstance()` assertion restates a type rather than a domain invariant, and a type checker already covers it. Assert the state you actually depend on instead.
+
+```python
+# flagged
+def scale(factor):
+    assert isinstance(factor, float), "factor must be a float"
+    ...
+
+# preferred
+def scale(factor):
+    assert factor > 0, "scale factor must be positive"
+    ...
+```
+
+**NASA05-M7: compound assertions**
+
+An assertion should test one condition so that a failure pinpoints exactly what broke. A conjunction should be split into separate assertions; a disjunction (an alternative or nullable guard) should be replaced by the underlying invariant it is really protecting.
+
+```python
+# flagged — 'and' bundles two independent checks
+assert isinstance(x, int) and x > 0, "x must be a positive int"
+
+# preferred — each condition fails on its own
+assert x > 0, "x must be positive"
+
+# flagged — 'or' nullable guard just restates the type
+def main(argv):
+    assert argv is None or isinstance(argv, list), "argv is args or None"
+    ...
+```
+
 ## Original NASA Power of 10 Rules
 
 The original rules were designed for C programming in safety-critical systems:
