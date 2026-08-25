@@ -8,7 +8,7 @@ import pytest
 from pytest_examples import CodeExample, EvalExample, find_examples
 
 from nasa_lsp import analyzer
-from nasa_lsp.analyzer import analyze
+from nasa_lsp.analyzer import DEFAULT_ENABLED_RULES, analyze
 
 
 def _repo_file(relative: str) -> Path:
@@ -92,3 +92,8 @@ def test_doc_source_triggers_its_rule(code: str, source: str) -> None:
 def test_every_rule_is_documented() -> None:
     missing = sorted(_emitted_rule_codes() - _documented_rules())
     assert not missing, f"rules absent from the reference section: {missing}"
+
+
+def test_every_rule_is_enabled_by_default() -> None:
+    off_by_default = sorted(_emitted_rule_codes() - set(DEFAULT_ENABLED_RULES))
+    assert not off_by_default, f"rules must be on by default; these ship disabled: {off_by_default}"
