@@ -26,6 +26,7 @@ RULE_SEVERITY: Final[dict[str, str]] = {
     "NASA05-M3": "warning",
     "NASA05-M4": "information",
     "NASA05-M5": "information",
+    "NASA05-M6": "warning",
 }
 DEFAULT_ENABLED_RULES: Final = frozenset(
     {
@@ -307,6 +308,14 @@ class NasaVisitor(ast.NodeVisitor):
         non_none = [ast.unparse(p) for p in parts if ast.unparse(p) != "None"]
         return non_none == [target]
 
+    def _restates_param_annotation(self, subject: ast.expr, type_node: ast.expr, params: dict[str, ast.expr]) -> bool:
+        """Return True when isinstance(subject, type_node) merely restates subject's parameter annotation."""
+        assert subject is not None, "isinstance subject must not be None"
+        assert type_node is not None, "isinstance type node must not be None"
+        if not (isinstance(subject, ast.Name) and subject.id in params):
+            return False
+        return self._annotation_matches_type(params[subject.id], type_node)
+
     def _check_restated_type(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
@@ -318,9 +327,7 @@ class NasaVisitor(ast.NodeVisitor):
             if len(test.args) != ISINSTANCE_ARG_COUNT:
                 continue
             subject, type_node = test.args
-            if not (isinstance(subject, ast.Name) and subject.id in params):
-                continue
-            if self._annotation_matches_type(params[subject.id], type_node):
+            if self._restates_param_annotation(subject, type_node, params):
                 self._add_diag(
                     self._range_for_node(stmt),
                     (
@@ -329,6 +336,28 @@ class NasaVisitor(ast.NodeVisitor):
                     ),
                     "NASA05-M1",
                 )
+
+    def _check_simple_isinstance(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        params = self._param_annotations(node)
+        for stmt in self._iter_function_asserts(node):
+            test = stmt.test
+            if not (isinstance(test, ast.Call) and isinstance(test.func, ast.Name) and test.func.id == "isinstance"):
+                continue
+            if len(test.args) != ISINSTANCE_ARG_COUNT:
+                continue
+            subject, type_node = test.args
+            if self._restates_param_annotation(subject, type_node, params):
+                continue  # NASA05-M1 already reports annotation restatements
+            self._add_diag(
+                self._range_for_node(stmt),
+                (
+                    f"Assertion is a simple isinstance() type check on '{ast.unparse(subject)}'; "
+                    "assert a domain invariant instead (NASA05-M6)"
+                ),
+                "NASA05-M6",
+            )
 
     @staticmethod
     def _statement_lists(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[list[ast.stmt]]:
@@ -493,6 +522,7 @@ class NasaVisitor(ast.NodeVisitor):
 
         before = len(self.diagnostics)
         self._check_restated_type(node)
+        self._check_simple_isinstance(node)
         self._check_just_assigned(node)
         self._check_redundant_none(node)
         self._check_total_op_truthiness(node)

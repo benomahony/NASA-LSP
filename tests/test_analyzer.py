@@ -684,6 +684,78 @@ def f(x):
     assert diagnostics == []
 
 
+def test_nasa05_m6_flags_isinstance_on_unannotated_param() -> None:
+    code = """
+def f(value):
+    assert isinstance(value, int), "value must be int"
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M6"]
+
+
+def test_nasa05_m6_flags_isinstance_on_wider_annotation() -> None:
+    code = """
+def f(value: object) -> None:
+    assert isinstance(value, int), "value must be int"
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M6"]
+
+
+def test_nasa05_m6_flags_isinstance_on_local_variable() -> None:
+    code = """
+def f(data):
+    parsed = load(data)
+    assert isinstance(parsed, dict), "parsed must be a dict"
+    return parsed
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M6"]
+
+
+def test_nasa05_m6_ignores_isinstance_combined_with_condition() -> None:
+    code = """
+def f(x):
+    assert isinstance(x, int) and x > 0, "x must be a positive int"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m6_ignores_non_isinstance_assert() -> None:
+    code = """
+def f(x):
+    assert x > 0, "x must be positive"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
+    assert diagnostics == []
+
+
+def test_nasa05_m6_does_not_double_flag_annotation_restatement() -> None:
+    code = """
+def f(value: bool) -> bool:
+    assert isinstance(value, bool), "value must be a bool"
+    return value
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1", "NASA05-M6"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M1"]
+
+
+def test_nasa05_m6_excludes_simple_isinstance_from_meaningful_count() -> None:
+    code = """
+def f(x):
+    assert isinstance(x, int), "x must be an int"
+    assert x > 5, "x must exceed the threshold"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-M6"}))
+    codes = [d.code for d in diagnostics]
+    assert "NASA05-M6" in codes
+    assert "NASA05" in codes
+
+
 def test_nasa05_count_excludes_flagged_assertions_when_m_rule_enabled() -> None:
     code = """
 def f(value: bool) -> bool:

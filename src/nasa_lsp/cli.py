@@ -87,7 +87,7 @@ def lint(
 ) -> None:
     """Check Python files for NASA Power of 10 rule violations."""
     assert console is not None, "Console must be initialized"
-    assert isinstance(paths, list | None), "Paths must be a list or None"
+    assert isinstance(paths, list | None), "Paths must be a list or None"  # nasa: ignore[NASA05-M6]
     cwd = Path.cwd()
     if paths is None:
         paths = [cwd]
@@ -120,7 +120,7 @@ def stats(
 ) -> None:
     """List all functions, line counts, and assert counts."""
     assert console is not None, "Console must be initialized"
-    assert isinstance(paths, list | None), "Paths must be a list or None"
+    assert isinstance(paths, list | None), "Paths must be a list or None"  # nasa: ignore[NASA05-M6]
     cwd = Path.cwd()
     if paths is None:
         paths = [cwd]

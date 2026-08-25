@@ -39,6 +39,7 @@ rules = [
   "NASA05-M3", # None check made redundant by a following isinstance
   "NASA05-M4", # Truthiness assertion on a total-operation result
   "NASA05-M5", # Post-condition already guaranteed by len()
+  "NASA05-M6", # Assertion is a simple isinstance() type check
 ]
 # Paths excluded from linting (test suites use bare pytest asserts)
 exclude = ["tests"]
