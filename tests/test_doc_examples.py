@@ -10,6 +10,7 @@ from pytest_examples import CodeExample, EvalExample, find_examples
 from nasa_lsp import analyzer
 from nasa_lsp.analyzer import analyze
 
+
 def _repo_file(relative: str) -> Path:
     """Locate a repo file by walking up from this test, since the cwd varies.
 
