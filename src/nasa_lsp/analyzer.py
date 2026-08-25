@@ -144,15 +144,13 @@ def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:
 
 class NasaVisitor(ast.NodeVisitor):
     def __init__(self, text: str, enabled_rules: frozenset[str] | None = None) -> None:
-        assert (  # nasa: ignore[NASA05-M7]
-            enabled_rules is None or enabled_rules
-        ), "enabled_rules, if provided, must be non-empty"
         self.text: str = text
         self.lines: list[str] = text.splitlines()
         assert len(self.lines) <= len(text) + 1, "line count cannot exceed character count plus one"
         self.diagnostics: list[Diagnostic] = []
         self.stats: list[FunctionStat] = []
         self.enabled_rules: frozenset[str] = enabled_rules if enabled_rules is not None else DEFAULT_ENABLED_RULES
+        assert self.enabled_rules, "resolved rule set must not be empty"
         self.ignored: dict[int, frozenset[str] | None] = self._parse_suppressions(text)
 
     @staticmethod
@@ -595,10 +593,6 @@ def analyze(
     file_path: Path | None = None,
     enabled_rules: frozenset[str] | None = None,
 ) -> tuple[list[Diagnostic], list[FunctionStat]]:
-    assert isinstance(text, str), "Text must be a string"  # nasa: ignore[NASA05-M1]
-    assert (  # nasa: ignore[NASA05-M7]
-        enabled_rules is None or enabled_rules
-    ), "enabled_rules, if provided, must be non-empty"
     if not text.strip():
         return [], []
     try:
@@ -609,4 +603,6 @@ def analyze(
         enabled_rules = load_enabled_rules(file_path)
     visitor = NasaVisitor(text, enabled_rules)
     visitor.visit(tree)
+    assert all(d.code for d in visitor.diagnostics), "every reported diagnostic must carry a rule code"
+    assert all(d.code in enabled_rules for d in visitor.diagnostics), "diagnostics must stay within the enabled rules"
     return visitor.diagnostics, visitor.stats

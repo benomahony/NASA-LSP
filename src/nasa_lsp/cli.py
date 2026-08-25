@@ -87,10 +87,10 @@ def lint(
 ) -> None:
     """Check Python files for NASA Power of 10 rule violations."""
     assert console is not None, "Console must be initialized"
-    assert isinstance(paths, list | None), "Paths must be a list or None"  # nasa: ignore[NASA05-M6]
     cwd = Path.cwd()
     if paths is None:
         paths = [cwd]
+    assert paths, "there must be at least one path to lint"
 
     files = discover_files(paths, load_exclude_patterns(cwd))
 
@@ -120,10 +120,10 @@ def stats(
 ) -> None:
     """List all functions, line counts, and assert counts."""
     assert console is not None, "Console must be initialized"
-    assert isinstance(paths, list | None), "Paths must be a list or None"  # nasa: ignore[NASA05-M6]
     cwd = Path.cwd()
     if paths is None:
         paths = [cwd]
+    assert paths, "there must be at least one path to analyze"
 
     files = discover_files(paths, load_exclude_patterns(cwd))
 
