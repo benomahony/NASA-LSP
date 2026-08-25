@@ -367,13 +367,15 @@ class NasaVisitor(ast.NodeVisitor):
             test = stmt.test
             if not isinstance(test, ast.BoolOp):
                 continue
-            connective = "and" if isinstance(test.op, ast.And) else "or"
+            if isinstance(test.op, ast.And):
+                remedy = "assert each condition separately so any one can fail independently"
+                connective = "and"
+            else:
+                remedy = "assert the underlying invariant directly instead of an alternative or nullable guard"
+                connective = "or"
             self._add_diag(
                 self._range_for_node(stmt),
-                (
-                    f"Compound assertion joins {len(test.values)} conditions with '{connective}'; "
-                    "assert each condition separately so any one can fail independently (NASA05-M7)"
-                ),
+                (f"Compound assertion joins {len(test.values)} conditions with '{connective}'; {remedy} (NASA05-M7)"),
                 "NASA05-M7",
             )
 

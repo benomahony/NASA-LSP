@@ -764,6 +764,8 @@ def main(argv):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
     assert [d.code for d in diagnostics] == ["NASA05-M7"]
+    assert "'or'" in diagnostics[0].message
+    assert "underlying invariant" in diagnostics[0].message
 
 
 def test_nasa05_m7_flags_and_conjunction() -> None:
@@ -774,6 +776,8 @@ def f(x):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
     assert [d.code for d in diagnostics] == ["NASA05-M7"]
+    assert "'and'" in diagnostics[0].message
+    assert "separately" in diagnostics[0].message
 
 
 def test_nasa05_m7_ignores_single_condition_assert() -> None:
