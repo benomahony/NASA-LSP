@@ -40,6 +40,7 @@ rules = [
   "NASA05-M4", # Truthiness assertion on a total-operation result
   "NASA05-M5", # Post-condition already guaranteed by len()
   "NASA05-M6", # Assertion is a simple isinstance() type check
+  "NASA05-M7", # Compound assertion should be split into separate asserts
 ]
 # Paths excluded from linting (test suites use bare pytest asserts)
 exclude = ["tests"]

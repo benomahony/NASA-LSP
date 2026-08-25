@@ -27,6 +27,7 @@ RULE_SEVERITY: Final[dict[str, str]] = {
     "NASA05-M4": "information",
     "NASA05-M5": "information",
     "NASA05-M6": "warning",
+    "NASA05-M7": "warning",
 }
 DEFAULT_ENABLED_RULES: Final = frozenset(
     {
@@ -143,7 +144,9 @@ def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:
 
 class NasaVisitor(ast.NodeVisitor):
     def __init__(self, text: str, enabled_rules: frozenset[str] | None = None) -> None:
-        assert enabled_rules is None or enabled_rules, "enabled_rules, if provided, must be non-empty"
+        assert (  # nasa: ignore[NASA05-M7]
+            enabled_rules is None or enabled_rules
+        ), "enabled_rules, if provided, must be non-empty"
         self.text: str = text
         self.lines: list[str] = text.splitlines()
         assert len(self.lines) <= len(text) + 1, "line count cannot exceed character count plus one"
@@ -359,6 +362,23 @@ class NasaVisitor(ast.NodeVisitor):
                 "NASA05-M6",
             )
 
+    def _check_compound_assertion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+        assert node is not None, "Function node must not be None"
+        assert node.body is not None, "Function must have a body"
+        for stmt in self._iter_function_asserts(node):
+            test = stmt.test
+            if not isinstance(test, ast.BoolOp):
+                continue
+            connective = "and" if isinstance(test.op, ast.And) else "or"
+            self._add_diag(
+                self._range_for_node(stmt),
+                (
+                    f"Compound assertion joins {len(test.values)} conditions with '{connective}'; "
+                    "assert each condition separately so any one can fail independently (NASA05-M7)"
+                ),
+                "NASA05-M7",
+            )
+
     @staticmethod
     def _statement_lists(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[list[ast.stmt]]:
         assert node is not None, "Function node must not be None"
@@ -523,6 +543,7 @@ class NasaVisitor(ast.NodeVisitor):
         before = len(self.diagnostics)
         self._check_restated_type(node)
         self._check_simple_isinstance(node)
+        self._check_compound_assertion(node)
         self._check_just_assigned(node)
         self._check_redundant_none(node)
         self._check_total_op_truthiness(node)
@@ -575,7 +596,9 @@ def analyze(
     enabled_rules: frozenset[str] | None = None,
 ) -> tuple[list[Diagnostic], list[FunctionStat]]:
     assert isinstance(text, str), "Text must be a string"  # nasa: ignore[NASA05-M1]
-    assert enabled_rules is None or enabled_rules, "enabled_rules, if provided, must be non-empty"
+    assert (  # nasa: ignore[NASA05-M7]
+        enabled_rules is None or enabled_rules
+    ), "enabled_rules, if provided, must be non-empty"
     if not text.strip():
         return [], []
     try:
