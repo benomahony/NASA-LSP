@@ -75,29 +75,164 @@ An assertion that only restates a type, echoes a just-assigned value, or bundles
 
 ## Rule detection reference
 
-The minimal snippet that triggers each rule, verified against the analyzer on every test run; `tests/test_doc_examples.py` fails if any rule is missing here.
+A minimal example for each rule, run against the analyzer on every test run; `tests/test_doc_examples.py` fails if any rule is missing an example here.
+
+`NASA01-A` — call to a forbidden dynamic API:
 
 ```python
 from nasa_lsp.analyzer import analyze
 
-cases = {
-    "NASA01-A": "def f():\n    eval('x')\n",
-    "NASA01-B": "def f():\n    return f()\n",
-    "NASA02": "def f():\n    while True:\n        pass\n",
-    "NASA04": "def f():\n" + "    pass\n" * 60,
-    "NASA05": "def f():\n    return 1\n",
-    "NASA05-A": "def f():\n    assert x\n",
-    "NASA05-M1": "def f(x: int):\n    assert isinstance(x, int), 'x'\n",
-    "NASA05-M2": "def f():\n    x = 5\n    assert x is not None, 'x'\n",
-    "NASA05-M3": "def f(x):\n    assert x is not None, 'x'\n    assert isinstance(x, int), 'x'\n",
-    "NASA05-M4": "def f(k):\n    name = str(k)\n    assert name, 'name'\n",
-    "NASA05-M5": "def f(x):\n    n = len(x)\n    assert n >= 0, 'n'\n",
-    "NASA05-M6": "def f(x):\n    assert isinstance(x, int), 'x'\n",
-    "NASA05-M7": "def f(x):\n    assert isinstance(x, int) and x > 0, 'x'\n",
-}
-for code, source in cases.items():
-    diagnostics, _ = analyze(source, enabled_rules=frozenset({code}))
-    assert [d.code for d in diagnostics] == [code], code
+source = """
+def f():
+    eval("expr")
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA01-A"}))[0]] == ["NASA01-A"]
+```
+
+`NASA01-B` — a function that calls itself:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f():
+    return f()
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA01-B"}))[0]] == ["NASA01-B"]
+```
+
+`NASA02` — an unbounded `while True` loop:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f():
+    while True:
+        pass
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA02"}))[0]] == ["NASA02"]
+```
+
+`NASA04` — a function longer than 60 lines:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = "def f():\n" + "    pass\n" * 60
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA04"}))[0]] == ["NASA04"]
+```
+
+`NASA05` — fewer than two meaningful assertions:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f():
+    return 1
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05"}))[0]] == ["NASA05"]
+```
+
+`NASA05-A` — an assertion with no message:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f(x):
+    assert x > 0
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-A"}))[0]] == ["NASA05-A"]
+```
+
+`NASA05-M1` — an assertion restating a parameter's annotation:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f(x: int):
+    assert isinstance(x, int), "x must be an int"
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-M1"}))[0]] == ["NASA05-M1"]
+```
+
+`NASA05-M2` — an assertion on a value that was just assigned a literal:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f():
+    x = 5
+    assert x is not None, "x must be set"
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-M2"}))[0]] == ["NASA05-M2"]
+```
+
+`NASA05-M3` — a `None` check made redundant by a following `isinstance`:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f(x):
+    assert x is not None, "x must be set"
+    assert isinstance(x, int), "x must be an int"
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-M3"}))[0]] == ["NASA05-M3"]
+```
+
+`NASA05-M4` — a truthiness assertion on a total string operation:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f(k):
+    name = str(k)
+    assert name, "name must be non-empty"
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-M4"}))[0]] == ["NASA05-M4"]
+```
+
+`NASA05-M5` — a post-condition already guaranteed by `len()`:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f(x):
+    n = len(x)
+    assert n >= 0, "length is non-negative"
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-M5"}))[0]] == ["NASA05-M5"]
+```
+
+`NASA05-M6` — a bare `isinstance()` type check:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f(x):
+    assert isinstance(x, int), "x must be an int"
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-M6"}))[0]] == ["NASA05-M6"]
+```
+
+`NASA05-M7` — a compound assertion joined by `and`:
+
+```python
+from nasa_lsp.analyzer import analyze
+
+source = """
+def f(x):
+    assert isinstance(x, int) and x > 0, "x must be a positive int"
+"""
+assert [d.code for d in analyze(source, enabled_rules=frozenset({"NASA05-M7"}))[0]] == ["NASA05-M7"]
 ```
 
 ## Original NASA Power of 10 Rules
