@@ -10,10 +10,27 @@ from pytest_examples import CodeExample, EvalExample, find_examples
 from nasa_lsp import analyzer
 from nasa_lsp.analyzer import analyze
 
-RULES_DOC = Path("docs/rules.md")
+def _repo_file(relative: str) -> Path:
+    """Locate a repo file by walking up from this test, since the cwd varies.
+
+    mutmut runs the suite from a copied ``mutants/`` tree that omits the docs, so
+    the nearest ancestor that actually contains the file is the real repo root.
+    """
+    for parent in Path(__file__).resolve().parents:
+        candidate = parent / relative
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(relative)
 
 
-@pytest.mark.parametrize("example", find_examples("README.md"), ids=str)
+RULES_DOC = _repo_file("docs/rules.md")
+README = _repo_file("README.md")
+
+
+_README_EXAMPLES = list(find_examples(README))
+
+
+@pytest.mark.parametrize("example", _README_EXAMPLES, ids=[str(example) for example in _README_EXAMPLES])
 def test_readme_examples(example: CodeExample, eval_example: EvalExample) -> None:
     """Every Python code block in the README must be valid, formatted, and importable."""
     eval_example.set_config(line_length=120, ruff_ignore=["ANN", "PLR2004", "INP001"])
