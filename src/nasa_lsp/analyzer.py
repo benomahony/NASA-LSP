@@ -37,6 +37,13 @@ DEFAULT_ENABLED_RULES: Final = frozenset(
         "NASA04",
         "NASA05",
         "NASA05-A",
+        "NASA05-M1",
+        "NASA05-M2",
+        "NASA05-M3",
+        "NASA05-M4",
+        "NASA05-M5",
+        "NASA05-M6",
+        "NASA05-M7",
     }
 )
 

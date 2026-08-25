@@ -16,8 +16,9 @@ from nasa_lsp.analyzer import (
 if TYPE_CHECKING:
     from pathlib import Path
 
-# For most tests, exclude NASA05-A since test code examples don't need assertion messages
-RULES_WITHOUT_ASSERT_MESSAGES = DEFAULT_ENABLED_RULES - {"NASA05-A"}
+# The structural rules only: base-rule tests use illustrative asserts that should not
+# trip the assertion-quality rules (NASA05-A and the NASA05-M family).
+RULES_WITHOUT_ASSERT_MESSAGES = frozenset({"NASA01-A", "NASA01-B", "NASA02", "NASA04", "NASA05"})
 
 
 def test_analyze_returns_empty_for_syntax_error() -> None:
@@ -777,6 +778,16 @@ def f(x, y):
     codes = [d.code for d in diagnostics]
     assert "NASA05-M7" in codes
     assert "NASA05" in codes
+
+
+def test_default_rules_enforce_the_quality_family() -> None:
+    code = """
+def f(query):
+    assert query is None or isinstance(query, str), "query must be a string or None"
+    return query
+"""
+    diagnostics, _ = analyze(code, enabled_rules=DEFAULT_ENABLED_RULES)
+    assert "NASA05-M7" in [d.code for d in diagnostics], "compound assertions must fail by default"
 
 
 def test_nasa05_count_excludes_flagged_assertions_when_m_rule_enabled() -> None:

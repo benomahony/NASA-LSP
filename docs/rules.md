@@ -60,7 +60,7 @@ Enforces minimum of 2 assert statements per function to detect impossible condit
 
 ### Assertion quality sub-rules
 
-An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. All except `NASA05-A` are opt-in via `[tool.nasa-lsp].rules`.
+An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. They are enabled by default; narrow the set with `[tool.nasa-lsp].rules` if needed.
 
 ## Rule detection reference
 
