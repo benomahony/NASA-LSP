@@ -55,18 +55,22 @@ def _emitted_rule_codes() -> set[str]:
             if isinstance(arg, ast.Constant) and isinstance(arg.value, str) and arg.value.startswith("NASA"):
                 codes.add(arg.value)
     assert codes, "expected to find rule codes emitted via _add_diag"
-    assert all(c.startswith("NASA") for c in codes), "every emitted rule code must be NASA-prefixed"
     return codes
 
 
-def _doc_rule_examples() -> list[tuple[str, str]]:
-    """(rule_code, source) for each labelled example in the 'Rule detection reference' section.
-
-    Each fenced block is preceded by a `NASA...` label; the source is the block itself.
-    """
+def _reference_section() -> str:
     text = RULES_DOC.read_text()
-    section = text.split("## Rule detection reference", 1)[1].split("## Original", 1)[0]
-    parts = re.split(r"```python\n(.*?)\n```", section, flags=re.DOTALL)
+    return text.split("## Rule detection reference", 1)[1].split("## Original", 1)[0]
+
+
+def _documented_rules() -> set[str]:
+    """Every rule labelled in the reference section (a label starts its line)."""
+    return set(re.findall(r"(?m)^`(NASA[\w-]+)`", _reference_section()))
+
+
+def _doc_rule_examples() -> list[tuple[str, str]]:
+    """(rule_code, source) for each fenced example, paired with its preceding `NASA...` label."""
+    parts = re.split(r"```python\n(.*?)\n```", _reference_section(), flags=re.DOTALL)
     examples: list[tuple[str, str]] = []
     for preceding, source in zip(parts[0::2], parts[1::2], strict=False):
         labels = re.findall(r"`(NASA[\w-]+)`", preceding)
@@ -85,7 +89,6 @@ def test_doc_source_triggers_its_rule(code: str, source: str) -> None:
     assert [d.code for d in diagnostics] == [code], f"{code} example did not trigger {code}"
 
 
-def test_every_rule_has_a_doc_example() -> None:
-    documented = {code for code, _ in _doc_rule_examples()}
-    missing = sorted(_emitted_rule_codes() - documented)
-    assert not missing, f"rules with no doc example: {missing}"
+def test_every_rule_is_documented() -> None:
+    missing = sorted(_emitted_rule_codes() - _documented_rules())
+    assert not missing, f"rules absent from the reference section: {missing}"

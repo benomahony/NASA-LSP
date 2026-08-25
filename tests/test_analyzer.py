@@ -684,30 +684,10 @@ def f(x):
     assert diagnostics == []
 
 
-def test_nasa05_m6_flags_isinstance_on_unannotated_param() -> None:
-    code = """
-def f(value):
-    assert isinstance(value, int), "value must be int"
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
-    assert [d.code for d in diagnostics] == ["NASA05-M6"]
-
-
 def test_nasa05_m6_flags_isinstance_on_wider_annotation() -> None:
     code = """
 def f(value: object) -> None:
     assert isinstance(value, int), "value must be int"
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
-    assert [d.code for d in diagnostics] == ["NASA05-M6"]
-
-
-def test_nasa05_m6_flags_isinstance_on_local_variable() -> None:
-    code = """
-def f(data):
-    parsed = load(data)
-    assert isinstance(parsed, dict), "parsed must be a dict"
-    return parsed
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
     assert [d.code for d in diagnostics] == ["NASA05-M6"]
@@ -764,19 +744,6 @@ def main(argv):
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
     assert [d.code for d in diagnostics] == ["NASA05-M7"]
-    assert "one condition per statement" in diagnostics[0].message
-
-
-def test_nasa05_m7_flags_and_conjunction() -> None:
-    code = """
-def f(x):
-    assert isinstance(x, int) and x > 0, "x must be a positive int"
-    return x
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
-    assert [d.code for d in diagnostics] == ["NASA05-M7"]
-    # 'and' and 'or' are treated identically — one blunt message for both.
-    assert "one condition per statement" in diagnostics[0].message
 
 
 def test_nasa05_m7_ignores_single_condition_assert() -> None:

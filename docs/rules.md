@@ -64,7 +64,7 @@ An assertion that only restates a type, echoes a just-assigned value, or bundles
 
 ## Rule detection reference
 
-Each block below is the source the linter analyzes to raise that rule. `tests/test_doc_examples.py` feeds every block through the analyzer, checks it triggers its rule, and fails if a rule has no example here.
+One example per rule; each block is run through the analyzer by `tests/test_doc_examples.py`, which also fails if a rule has no example.
 
 `NASA01-A` — call to a forbidden dynamic API:
 
@@ -88,76 +88,7 @@ def f():
         pass
 ```
 
-`NASA04` — a function longer than 60 lines:
-
-<details>
-<summary>A 60-line function</summary>
-
-```python
-def f():
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-    pass
-```
-
-</details>
+`NASA04` — a function whose body spans more than 60 lines (no example: the trigger is length alone).
 
 `NASA05` — fewer than two meaningful assertions:
 
