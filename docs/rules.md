@@ -62,17 +62,6 @@ Enforces minimum of 2 assert statements per function to detect impossible condit
 
 An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. All except `NASA05-A` are opt-in via `[tool.nasa-lsp].rules`.
 
-| Code | Flags | Severity |
-|------|-------|----------|
-| `NASA05-A` | Assertion with no descriptive message | error |
-| `NASA05-M1` | Assertion restates a parameter's type annotation | warning |
-| `NASA05-M2` | Assertion can never fail — variable was just assigned a constant literal | error |
-| `NASA05-M3` | `is not None` check made redundant by a following `isinstance` | warning |
-| `NASA05-M4` | Truthiness assertion on a total operation (`str()`, `repr()`, an f-string) | information |
-| `NASA05-M5` | Post-condition already guaranteed by `len()` (e.g. `n >= 0`) | information |
-| `NASA05-M6` | Simple `isinstance()` type check | warning |
-| `NASA05-M7` | Compound assertion joined by `and` / `or` | warning |
-
 ## Rule detection reference
 
 Each block below is the source the linter analyzes to raise that rule. `tests/test_doc_examples.py` feeds every block through the analyzer, checks it triggers its rule, and fails if a rule has no example here.
