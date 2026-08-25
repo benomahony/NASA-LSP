@@ -95,7 +95,7 @@ def scale(factor):
 
 **NASA05-M7: compound assertions**
 
-An assertion should test one condition so that a failure pinpoints exactly what broke. A conjunction bundles independent checks — flagged:
+An assertion should test one condition so that a failure pinpoints exactly what broke. Any assertion joined by `and` or `or` is flagged — the rule is deliberately blunt and treats both the same. Flagged:
 
 ```python
 def clamp(x):
@@ -103,7 +103,7 @@ def clamp(x):
     return x
 ```
 
-Preferred — one atomic condition each, so a failure names the broken invariant:
+Preferred — one atomic condition per statement, so a failure names the broken invariant:
 
 ```python
 def clamp(x):
@@ -112,7 +112,7 @@ def clamp(x):
     return x
 ```
 
-A disjunction is usually a nullable or alternative guard that just restates a type — flagged:
+An `or` is usually a nullable or alternative guard that just restates a type, and it is flagged too:
 
 ```python
 def main(argv):
@@ -120,7 +120,7 @@ def main(argv):
     return 0
 ```
 
-The remedy for an `or` is not to split it (that changes the meaning) but to assert the underlying invariant directly — for example, resolve the `None` first and then assert what the resolved value must satisfy.
+Splitting an `or` would change its meaning, so the remedy is to assert the underlying invariant directly — for example, resolve the `None` first and then assert what the resolved value must satisfy.
 
 ## Original NASA Power of 10 Rules
 

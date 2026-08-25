@@ -397,18 +397,11 @@ class NasaVisitor(ast.NodeVisitor):
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         for stmt in self._iter_function_asserts(node):
-            test = stmt.test
-            if not isinstance(test, ast.BoolOp):
+            if not isinstance(stmt.test, ast.BoolOp):
                 continue
-            if isinstance(test.op, ast.And):
-                remedy = "assert each condition separately so any one can fail independently"
-                connective = "and"
-            else:
-                remedy = "assert the underlying invariant directly instead of an alternative or nullable guard"
-                connective = "or"
             self._add_diag(
                 self._range_for_node(stmt),
-                (f"Compound assertion joins {len(test.values)} conditions with '{connective}'; {remedy} (NASA05-M7)"),
+                "Compound assertion uses 'and'/'or'; assert one condition per statement (NASA05-M7)",
                 "NASA05-M7",
             )
 
