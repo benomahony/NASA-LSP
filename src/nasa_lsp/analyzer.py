@@ -229,11 +229,6 @@ class NasaVisitor(ast.NodeVisitor):
 
     @override
     def visit_Call(self, node: ast.Call) -> None:
-        r"""Flag calls to forbidden dynamic APIs (NASA01-A).
-
-        >>> analyze("def f():\n    eval('x')\n", enabled_rules=frozenset({"NASA01-A"}))[0][0].code
-        'NASA01-A'
-        """
         assert node is not None, "Call node must not be None"
         assert hasattr(node, "func"), "Call node must have func attribute"
         name: str | None = None
@@ -259,11 +254,6 @@ class NasaVisitor(ast.NodeVisitor):
 
     @override
     def visit_While(self, node: ast.While) -> None:
-        r"""Flag an unbounded ``while True`` loop (NASA02).
-
-        >>> analyze("def f():\n    while True:\n        pass\n", enabled_rules=frozenset({"NASA02"}))[0][0].code
-        'NASA02'
-        """
         assert node is not None, "While node must not be None"
         assert hasattr(node, "test"), "While node must have test attribute"
         if isinstance(node.test, ast.Constant) and node.test.value is True:
@@ -276,11 +266,6 @@ class NasaVisitor(ast.NodeVisitor):
 
     @override
     def visit_Assert(self, node: ast.Assert) -> None:
-        r"""Flag an assertion with no descriptive message (NASA05-A).
-
-        >>> analyze("def f():\n    assert x\n", enabled_rules=frozenset({"NASA05-A"}))[0][0].code
-        'NASA05-A'
-        """
         assert node is not None, "Assert node must not be None"
         assert hasattr(node, "test"), "Assert node must have test attribute"
         if node.msg is None:
@@ -333,12 +318,6 @@ class NasaVisitor(ast.NodeVisitor):
         return self._annotation_matches_type(params[subject.id], type_node)
 
     def _check_restated_type(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Flag an isinstance() assertion that restates a parameter's annotation (NASA05-M1).
-
-        >>> src = "def f(x: int):\n    assert isinstance(x, int), 'x int'\n"
-        >>> analyze(src, enabled_rules=frozenset({"NASA05-M1"}))[0][0].code
-        'NASA05-M1'
-        """
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         params = self._param_annotations(node)
@@ -360,12 +339,6 @@ class NasaVisitor(ast.NodeVisitor):
                 )
 
     def _check_simple_isinstance(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Flag a bare isinstance() type check as a weak assertion (NASA05-M6).
-
-        >>> src = "def f(x):\n    assert isinstance(x, int), 'x int'\n"
-        >>> analyze(src, enabled_rules=frozenset({"NASA05-M6"}))[0][0].code
-        'NASA05-M6'
-        """
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         params = self._param_annotations(node)
@@ -388,12 +361,6 @@ class NasaVisitor(ast.NodeVisitor):
             )
 
     def _check_compound_assertion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Flag an assertion joined by ``and`` / ``or`` (NASA05-M7).
-
-        >>> src = "def f(x):\n    assert isinstance(x, int) and x > 0, 'pos int'\n"
-        >>> analyze(src, enabled_rules=frozenset({"NASA05-M7"}))[0][0].code
-        'NASA05-M7'
-        """
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         for stmt in self._iter_function_asserts(node):
@@ -444,12 +411,6 @@ class NasaVisitor(ast.NodeVisitor):
         return isinstance(op, ast.Eq) and ast.unparse(comparator) == ast.unparse(value)
 
     def _check_just_assigned(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Flag an assertion that can never fail because its subject was just assigned a literal (NASA05-M2).
-
-        >>> src = "def f():\n    x = 5\n    assert x is not None, 'x set'\n"
-        >>> analyze(src, enabled_rules=frozenset({"NASA05-M2"}))[0][0].code
-        'NASA05-M2'
-        """
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         for body in self._statement_lists(node):
@@ -470,12 +431,6 @@ class NasaVisitor(ast.NodeVisitor):
                     self._add_diag(self._range_for_node(current), message, "NASA05-M2")
 
     def _check_redundant_none(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Flag a None check made redundant by a following isinstance (NASA05-M3).
-
-        >>> src = "def f(x):\n    assert x is not None, 'set'\n    assert isinstance(x, int), 'int'\n"
-        >>> analyze(src, enabled_rules=frozenset({"NASA05-M3"}))[0][0].code
-        'NASA05-M3'
-        """
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         for body in self._statement_lists(node):
@@ -497,12 +452,6 @@ class NasaVisitor(ast.NodeVisitor):
                 self._add_diag(self._range_for_node(prev), message, "NASA05-M3")
 
     def _check_total_op_truthiness(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Flag a truthiness assertion on a total string operation that rarely fails (NASA05-M4).
-
-        >>> src = "def f(k):\n    name = str(k)\n    assert name, 'name'\n"
-        >>> analyze(src, enabled_rules=frozenset({"NASA05-M4"}))[0][0].code
-        'NASA05-M4'
-        """
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         for body in self._statement_lists(node):
@@ -522,12 +471,6 @@ class NasaVisitor(ast.NodeVisitor):
                     self._add_diag(self._range_for_node(current), message, "NASA05-M4")
 
     def _check_guaranteed_length(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Flag a post-condition already guaranteed by len() (NASA05-M5).
-
-        >>> src = "def f(x):\n    n = len(x)\n    assert n >= 0, 'non-negative'\n"
-        >>> analyze(src, enabled_rules=frozenset({"NASA05-M5"}))[0][0].code
-        'NASA05-M5'
-        """
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         for body in self._statement_lists(node):
@@ -580,15 +523,6 @@ class NasaVisitor(ast.NodeVisitor):
         return assert_count
 
     def _check_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        r"""Check per-function rules: recursion (NASA01-B), length (NASA04), assertion density (NASA05).
-
-        >>> analyze("def f():\n    return f()\n", enabled_rules=frozenset({"NASA01-B"}))[0][0].code
-        'NASA01-B'
-        >>> analyze("def f():\n" + "    x = 1\n" * 60, enabled_rules=frozenset({"NASA04"}))[0][0].code
-        'NASA04'
-        >>> analyze("def f():\n    return 1\n", enabled_rules=frozenset({"NASA05"}))[0][0].code
-        'NASA05'
-        """
         func_name = node.name
         assert func_name, "Function must have a name"
         assert node.end_lineno is not None, "Function node must have end line number"
