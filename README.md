@@ -101,14 +101,7 @@ The LSP runs automatically on Python files and provides inline diagnostics as yo
 - `NASA02`: Unbounded while True loop
 - `NASA05`: Insufficient assertions in function
 
-Rule 5 also ships a family of assertion-*quality* checks. `NASA05-A` requires
-every assertion to carry a descriptive message, and `NASA05-M1`–`NASA05-M7`
-flag assertions that check nothing a static tool can't already prove — a bare
-type check, a value that was just assigned, a compound `and`/`or` test, and so
-on. A flagged assertion doesn't count toward the `NASA05` density minimum, so
-padding a function with weak asserts won't satisfy the rule. See
-[docs/rules.md](docs/rules.md#assertion-quality-sub-rules) for the full list
-with examples.
+Rule 5 also ships opt-in assertion-*quality* checks (`NASA05-A`, `NASA05-M1`–`M7`) that flag assertions a static tool can already prove — see [docs/rules.md](docs/rules.md#assertion-quality-sub-rules).
 
 ## Example Violations
 
@@ -136,10 +129,7 @@ def process_data(items):
         assert item is not None, "queue entries must never be None"
 ```
 
-The assertions state *domain invariants* — the batch is non-empty, and no
-entry is `None` — rather than restating that `items` is a `list`. A bare
-`assert isinstance(items, list)` would be flagged by `NASA05-M6` and would not
-count toward the assertion-density minimum.
+The assertions state domain invariants rather than restating that `items` is a `list` — a bare `assert isinstance(items, list)` would be flagged by `NASA05-M6`.
 
 ## SAFETY-CRITICAL CODING RULES
 

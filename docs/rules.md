@@ -60,71 +60,22 @@ Enforces minimum of 2 assert statements per function to detect impossible condit
 
 ### Assertion quality sub-rules
 
-The Power of 10 says an assertion must be able to fail on a real bug: *"Any assertion for which a static checking tool can prove that it can never fail or never hold violates this rule."* Meeting the density minimum with assertions that only restate a type, echo a value that was just assigned, or bundle several conditions together defeats the purpose. These sub-rules flag such assertions, and — crucially — **a flagged assertion is subtracted from the count that `NASA05` checks**, so weak asserts cannot pad a function to the minimum.
+An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. All except `NASA05-A` are opt-in via `[tool.nasa-lsp].rules`.
 
 | Code | Flags | Severity |
 |------|-------|----------|
 | `NASA05-A` | Assertion with no descriptive message | error |
 | `NASA05-M1` | Assertion restates a parameter's type annotation | warning |
 | `NASA05-M2` | Assertion can never fail — variable was just assigned a constant literal | error |
-| `NASA05-M3` | `is not None` check made redundant by a following `isinstance` on the same value | warning |
-| `NASA05-M4` | Truthiness assertion on a total operation (`str()`, `repr()`, an f-string) that rarely fails | information |
+| `NASA05-M3` | `is not None` check made redundant by a following `isinstance` | warning |
+| `NASA05-M4` | Truthiness assertion on a total operation (`str()`, `repr()`, an f-string) | information |
 | `NASA05-M5` | Post-condition already guaranteed by `len()` (e.g. `n >= 0`) | information |
 | `NASA05-M6` | Simple `isinstance()` type check | warning |
 | `NASA05-M7` | Compound assertion joined by `and` / `or` | warning |
 
-All of these except `NASA05-A` are opt-in; enable them under `[tool.nasa-lsp].rules` in `pyproject.toml`.
-
-**NASA05-M6: simple isinstance() checks**
-
-A bare `isinstance()` assertion restates a type rather than a domain invariant, and a type checker already covers it. Flagged:
-
-```python
-def scale(factor):
-    assert isinstance(factor, float), "factor must be a float"
-    return factor * 2
-```
-
-Preferred — assert the state you actually depend on:
-
-```python
-def scale(factor):
-    assert factor > 0, "scale factor must be positive"
-    return factor * 2
-```
-
-**NASA05-M7: compound assertions**
-
-An assertion should test one condition so that a failure pinpoints exactly what broke. Any assertion joined by `and` or `or` is flagged — the rule is deliberately blunt and treats both the same. Flagged:
-
-```python
-def clamp(x):
-    assert isinstance(x, int) and x > 0, "x must be a positive int"
-    return x
-```
-
-Preferred — one atomic condition per statement, so a failure names the broken invariant:
-
-```python
-def clamp(x):
-    assert x > 0, "x must be positive"
-    assert x < 100, "x must be below the limit"
-    return x
-```
-
-An `or` is usually a nullable or alternative guard that just restates a type, and it is flagged too:
-
-```python
-def main(argv):
-    assert argv is None or isinstance(argv, list), "argv must be args or None"
-    return 0
-```
-
-Splitting an `or` would change its meaning, so the remedy is to assert the underlying invariant directly — for example, resolve the `None` first and then assert what the resolved value must satisfy.
-
 ## Rule detection reference
 
-The minimal snippet that triggers each rule, checked against the analyzer on every test run. A test (`tests/test_doc_examples.py`) enforces that every rule the linter can emit appears here, so a new rule cannot ship without a documented example.
+The minimal snippet that triggers each rule, verified against the analyzer on every test run; `tests/test_doc_examples.py` fails if any rule is missing here.
 
 ```python
 from nasa_lsp.analyzer import analyze
