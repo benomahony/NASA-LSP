@@ -104,6 +104,13 @@ def f(x):
     assert x > 0
 ```
 
+`NASA05-M1` — a compound assertion joined by `and` / `or`:
+
+```python
+def f(x):
+    assert x > 0 and x < 100, "x must be within range"
+```
+
 `NASA05-M2` — an assertion on a value that was just assigned a literal:
 
 ```python
@@ -136,18 +143,11 @@ def f(x):
     assert n >= 0, "length is non-negative"
 ```
 
-`NASA05-M6` — a bare `isinstance()` type check:
+`NASA05-M6` — an assertion that checks a type with `isinstance()`:
 
 ```python
 def f(x):
     assert isinstance(x, int), "x must be an int"
-```
-
-`NASA05-M7` — a compound assertion joined by `and`:
-
-```python
-def f(x):
-    assert isinstance(x, int) and x > 0, "x must be a positive int"
 ```
 
 ## Original NASA Power of 10 Rules

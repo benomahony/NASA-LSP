@@ -688,46 +688,46 @@ def f(x):
     assert "NASA05" in codes
 
 
-def test_nasa05_m7_flags_or_type_guard() -> None:
+def test_nasa05_m1_flags_or_type_guard() -> None:
     code = """
 def main(argv):
     assert argv is None or isinstance(argv, list), "argv is a list of args or None"
     return 0
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
-    assert [d.code for d in diagnostics] == ["NASA05-M7"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M1"]
 
 
-def test_nasa05_m7_ignores_single_condition_assert() -> None:
+def test_nasa05_m1_ignores_single_condition_assert() -> None:
     code = """
 def f(x):
     assert x > 0, "x must be positive"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
     assert diagnostics == []
 
 
-def test_nasa05_m7_ignores_chained_comparison() -> None:
+def test_nasa05_m1_ignores_chained_comparison() -> None:
     code = """
 def f(i, items):
     assert 0 <= i < len(items), "index must be in range"
     return items[i]
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
     assert diagnostics == []
 
 
-def test_nasa05_m7_excludes_compound_assertion_from_meaningful_count() -> None:
+def test_nasa05_m1_excludes_compound_assertion_from_meaningful_count() -> None:
     code = """
 def f(x, y):
     assert x > 0 and y > 0, "both must be positive"
     assert x != y, "x and y must differ"
     return x + y
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-M7"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-M1"}))
     codes = [d.code for d in diagnostics]
-    assert "NASA05-M7" in codes
+    assert "NASA05-M1" in codes
     assert "NASA05" in codes
 
 
@@ -738,7 +738,7 @@ def f(query):
     return query
 """
     diagnostics, _ = analyze(code, enabled_rules=ALL_RULES)
-    assert "NASA05-M7" in [d.code for d in diagnostics], "compound assertions must fail by default"
+    assert "NASA05-M1" in [d.code for d in diagnostics], "compound assertions must fail by default"
 
 
 def test_nasa05_count_excludes_flagged_assertions_when_m_rule_enabled() -> None:
@@ -872,7 +872,7 @@ def test_rule_severity_maps_documented_levels() -> None:
     assert rule_severity("NASA04") == "warning"
     assert rule_severity("NASA05") == "error"
     assert rule_severity("NASA05-M4") == "information"
-    assert rule_severity("NASA05-M7") == "warning"
+    assert rule_severity("NASA05-M1") == "warning"
 
 
 def test_rule_severity_defaults_to_warning_for_unknown_code() -> None:

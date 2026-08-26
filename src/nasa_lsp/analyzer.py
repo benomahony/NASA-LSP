@@ -28,12 +28,12 @@ RULE_SEVERITY: Final[dict[str, str]] = {
     "NASA04": "warning",
     "NASA05": "error",
     "NASA05-A": "warning",
+    "NASA05-M1": "warning",
     "NASA05-M2": "error",
     "NASA05-M3": "warning",
     "NASA05-M4": "information",
     "NASA05-M5": "information",
     "NASA05-M6": "warning",
-    "NASA05-M7": "warning",
 }
 
 # Every rule is enabled; a project disables individual rules via config, never enables.
@@ -298,8 +298,8 @@ class NasaVisitor(ast.NodeVisitor):
                 continue
             self._add_diag(
                 self._range_for_node(stmt),
-                "Compound assertion uses 'and'/'or'; assert one condition per statement (NASA05-M7)",
-                "NASA05-M7",
+                "Compound assertion uses 'and'/'or'; assert one condition per statement (NASA05-M1)",
+                "NASA05-M1",
             )
 
     @staticmethod
