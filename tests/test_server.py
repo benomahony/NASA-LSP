@@ -153,4 +153,4 @@ def test_to_lsp_diagnostic_maps_information_severity() -> None:
 
 
 def test_to_lsp_diagnostic_defaults_unknown_code_to_warning() -> None:
-    assert to_lsp_diagnostic(_diag("NASA01-A")).severity == types.DiagnosticSeverity.Warning
+    assert to_lsp_diagnostic(_diag("SOMETHING-ELSE")).severity == types.DiagnosticSeverity.Warning

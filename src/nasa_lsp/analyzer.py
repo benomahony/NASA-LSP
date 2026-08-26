@@ -19,8 +19,15 @@ ISINSTANCE_ARG_COUNT: Final = 2
 CONSTANT_CONSTRUCTORS: Final = frozenset({"dict", "list", "set", "tuple", "frozenset"})
 TOTAL_STR_OPS: Final = frozenset({"str", "repr", "format", "ascii"})
 SEVERITY_LEVELS: Final = frozenset({"error", "warning", "information"})
+# The one registry of every rule the linter can emit, with its severity. Adding a
+# rule means adding it here; it is then known, severity-mapped, and on by default.
 RULE_SEVERITY: Final[dict[str, str]] = {
+    "NASA01-A": "error",
+    "NASA01-B": "error",
+    "NASA02": "error",
+    "NASA04": "warning",
     "NASA05": "error",
+    "NASA05-A": "warning",
     "NASA05-M1": "warning",
     "NASA05-M2": "error",
     "NASA05-M3": "warning",
@@ -29,23 +36,9 @@ RULE_SEVERITY: Final[dict[str, str]] = {
     "NASA05-M6": "warning",
     "NASA05-M7": "warning",
 }
-DEFAULT_ENABLED_RULES: Final = frozenset(
-    {
-        "NASA01-A",
-        "NASA01-B",
-        "NASA02",
-        "NASA04",
-        "NASA05",
-        "NASA05-A",
-        "NASA05-M1",
-        "NASA05-M2",
-        "NASA05-M3",
-        "NASA05-M4",
-        "NASA05-M5",
-        "NASA05-M6",
-        "NASA05-M7",
-    }
-)
+
+# Every rule is enabled; a project disables individual rules via config, never enables.
+ALL_RULES: Final = frozenset(RULE_SEVERITY)
 
 
 @dataclass
@@ -126,15 +119,15 @@ def _nearest_nasa_config(start_path: Path | None) -> dict[str, object]:  # nasa:
 
 
 def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
-    """Load enabled rules from pyproject.toml, searching up from start_path."""
+    """Return every rule except those disabled via [tool.nasa-lsp].disable in pyproject.toml."""
     config = _nearest_nasa_config(start_path)
-    raw = config.get("rules")
+    raw = config.get("disable")
     if isinstance(raw, list) and raw:
-        rules = cast("list[str]", raw)
-        assert all(isinstance(r, str) for r in rules), "NASA rule entries must be strings"
-        assert all(rules), "NASA rule names must be non-empty"
-        return frozenset(rules)
-    return DEFAULT_ENABLED_RULES
+        disabled = cast("list[str]", raw)
+        assert all(isinstance(r, str) for r in disabled), "disabled rule entries must be strings"
+        assert all(disabled), "disabled rule names must be non-empty"
+        return ALL_RULES - frozenset(disabled)
+    return ALL_RULES
 
 
 def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:
@@ -156,8 +149,8 @@ class NasaVisitor(ast.NodeVisitor):
         assert len(self.lines) <= len(text) + 1, "line count cannot exceed character count plus one"
         self.diagnostics: list[Diagnostic] = []
         self.stats: list[FunctionStat] = []
-        self.enabled_rules: frozenset[str] = enabled_rules if enabled_rules is not None else DEFAULT_ENABLED_RULES
-        assert self.enabled_rules, "resolved rule set must not be empty"
+        self.enabled_rules: frozenset[str] = enabled_rules if enabled_rules is not None else ALL_RULES
+        assert self.enabled_rules <= ALL_RULES, "enabled rules must be known rules"
         self.ignored: dict[int, frozenset[str] | None] = self._parse_suppressions(text)
 
     @staticmethod

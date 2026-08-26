@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from nasa_lsp.analyzer import (
-    DEFAULT_ENABLED_RULES,
+    ALL_RULES,
     Diagnostic,
     Position,
     Range,
@@ -786,7 +786,7 @@ def f(query):
     assert query is None or isinstance(query, str), "query must be a string or None"
     return query
 """
-    diagnostics, _ = analyze(code, enabled_rules=DEFAULT_ENABLED_RULES)
+    diagnostics, _ = analyze(code, enabled_rules=ALL_RULES)
     assert "NASA05-M7" in [d.code for d in diagnostics], "compound assertions must fail by default"
 
 
@@ -926,16 +926,14 @@ def f(x, k):
 
 
 def test_rule_severity_maps_documented_levels() -> None:
-    assert rule_severity("NASA05-M2") == "error"
+    assert rule_severity("NASA01-A") == "error"
+    assert rule_severity("NASA04") == "warning"
     assert rule_severity("NASA05") == "error"
-    assert rule_severity("NASA05-M1") == "warning"
-    assert rule_severity("NASA05-M3") == "warning"
     assert rule_severity("NASA05-M4") == "information"
-    assert rule_severity("NASA05-M5") == "information"
+    assert rule_severity("NASA05-M7") == "warning"
 
 
 def test_rule_severity_defaults_to_warning_for_unknown_code() -> None:
-    assert rule_severity("NASA01-A") == "warning"
     assert rule_severity("SOMETHING-ELSE") == "warning"
 
 
@@ -946,12 +944,19 @@ def test_load_exclude_patterns_reads_config(tmp_path: Path) -> None:
 
 
 def test_load_exclude_patterns_defaults_to_empty(tmp_path: Path) -> None:
-    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\nrules = ["NASA05"]\n')
+    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\ndisable = ["NASA05"]\n')
     patterns = load_exclude_patterns(tmp_path)
     assert patterns == ()
 
 
-def test_load_enabled_rules_reads_config_after_refactor(tmp_path: Path) -> None:
-    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\nrules = ["NASA02", "NASA04"]\n')
+def test_load_enabled_rules_defaults_to_all_rules(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text("[tool.nasa-lsp]\n")
+    assert load_enabled_rules(tmp_path) == ALL_RULES
+
+
+def test_load_enabled_rules_disables_listed_rules(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\ndisable = ["NASA04", "NASA05-M4"]\n')
     rules = load_enabled_rules(tmp_path)
-    assert rules == frozenset({"NASA02", "NASA04"})
+    assert "NASA04" not in rules
+    assert "NASA05-M4" not in rules
+    assert rules == ALL_RULES - {"NASA04", "NASA05-M4"}

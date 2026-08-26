@@ -8,7 +8,7 @@ import pytest
 from pytest_examples import CodeExample, EvalExample, find_examples
 
 from nasa_lsp import analyzer
-from nasa_lsp.analyzer import DEFAULT_ENABLED_RULES, analyze
+from nasa_lsp.analyzer import ALL_RULES, analyze
 
 
 def _repo_file(relative: str) -> Path:
@@ -94,6 +94,8 @@ def test_every_rule_is_documented() -> None:
     assert not missing, f"rules absent from the reference section: {missing}"
 
 
-def test_every_rule_is_enabled_by_default() -> None:
-    off_by_default = sorted(_emitted_rule_codes() - set(DEFAULT_ENABLED_RULES))
-    assert not off_by_default, f"rules must be on by default; these ship disabled: {off_by_default}"
+def test_registry_matches_the_emittable_rules() -> None:
+    # ALL_RULES is the single source of truth: every rule the linter emits must be
+    # registered (so it is known, severity-mapped, and on by default), and the
+    # registry must not list a rule that no longer exists.
+    assert _emitted_rule_codes() == set(ALL_RULES)
