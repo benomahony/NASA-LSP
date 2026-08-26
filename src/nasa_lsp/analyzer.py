@@ -271,7 +271,7 @@ class NasaVisitor(ast.NodeVisitor):
         if node.msg is None:
             self._add_diag(
                 self._range_for_node(node),
-                "Assert statement missing descriptive error message",
+                "Assert has no message; describe the invariant it checks",
                 "NASA05-message",
             )
         self.generic_visit(node)
@@ -369,7 +369,7 @@ class NasaVisitor(ast.NodeVisitor):
                     continue
                 target = ast.unparse(prev.targets[0])
                 if self._assert_always_holds(current.test, target, prev.value):
-                    message = f"Assertion always holds: '{target}' was just assigned a constant literal"
+                    message = f"Assertion always holds: '{target}' was just assigned a literal; assert a runtime value"
                     self._add_diag(self._range_for_node(current), message, "NASA05-constant-assert")
 
     def _check_redundant_none(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
@@ -433,7 +433,7 @@ class NasaVisitor(ast.NodeVisitor):
                     isinstance(test.ops[0], ast.Gt) and bound.value == -1
                 )
                 if non_negative:
-                    message = f"Post-condition '{target}' is guaranteed by len() and can never fail"
+                    message = f"Post-condition '{target}' is guaranteed by len() and cannot fail; assert a real bound"
                     self._add_diag(self._range_for_node(current), message, "NASA05-guaranteed-len")
 
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
