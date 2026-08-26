@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # The structural rules only: base-rule tests use illustrative asserts that should not
-# trip the assertion-quality rules (NASA05-message and the NASA05-M family).
+# trip the assertion-quality rules (NASA05-message and the other NASA05-* rules).
 RULES_WITHOUT_ASSERT_MESSAGES = frozenset({"NASA01-forbidden-api", "NASA01-recursion", "NASA02", "NASA04", "NASA05"})
 
 
