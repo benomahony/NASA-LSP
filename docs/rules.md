@@ -104,13 +104,6 @@ def f(x):
     assert x > 0
 ```
 
-`NASA05-M1` — an assertion restating a parameter's annotation:
-
-```python
-def f(x: int):
-    assert isinstance(x, int), "x must be an int"
-```
-
 `NASA05-M2` — an assertion on a value that was just assigned a literal:
 
 ```python

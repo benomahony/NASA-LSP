@@ -101,7 +101,7 @@ The LSP runs automatically on Python files and provides inline diagnostics as yo
 - `NASA02`: Unbounded while True loop
 - `NASA05`: Insufficient assertions in function
 
-Rule 5 also enforces assertion-*quality* checks (`NASA05-A`, `NASA05-M1`–`M7`) that flag assertions a static tool can already prove — see [docs/rules.md](docs/rules.md#assertion-quality-sub-rules).
+Rule 5 also enforces assertion-*quality* checks (the `NASA05-A` and `NASA05-M` rules) that flag assertions a static tool can already prove — see [docs/rules.md](docs/rules.md#assertion-quality-sub-rules).
 
 ## Example Violations
 

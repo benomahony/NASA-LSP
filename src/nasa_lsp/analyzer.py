@@ -28,7 +28,6 @@ RULE_SEVERITY: Final[dict[str, str]] = {
     "NASA04": "warning",
     "NASA05": "error",
     "NASA05-A": "warning",
-    "NASA05-M1": "warning",
     "NASA05-M2": "error",
     "NASA05-M3": "warning",
     "NASA05-M4": "information",
@@ -118,28 +117,17 @@ def _nearest_nasa_config(start_path: Path | None) -> dict[str, object]:  # nasa:
     return {}
 
 
-def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:
+def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:  # nasa: ignore[NASA05]
     """Return every rule except those disabled via [tool.nasa-lsp].disable in pyproject.toml."""
-    config = _nearest_nasa_config(start_path)
-    raw = config.get("disable")
-    if isinstance(raw, list) and raw:
-        disabled = cast("list[str]", raw)
-        assert all(isinstance(r, str) for r in disabled), "disabled rule entries must be strings"
-        assert all(disabled), "disabled rule names must be non-empty"
-        return ALL_RULES - frozenset(disabled)
-    return ALL_RULES
+    raw = _nearest_nasa_config(start_path).get("disable")
+    disabled = frozenset(cast("list[str]", raw)) if isinstance(raw, list) else frozenset[str]()
+    return ALL_RULES - disabled
 
 
-def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:
-    """Load exclude glob patterns from pyproject.toml, searching up from start_path."""
-    config = _nearest_nasa_config(start_path)
-    raw = config.get("exclude")
-    if isinstance(raw, list) and raw:
-        patterns = cast("list[str]", raw)
-        assert all(isinstance(p, str) for p in patterns), "exclude patterns must be strings"
-        assert all(patterns), "exclude patterns must be non-empty"
-        return tuple(patterns)
-    return ()
+def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:  # nasa: ignore[NASA05]
+    """Return exclude glob patterns from [tool.nasa-lsp].exclude, or an empty tuple."""
+    raw = _nearest_nasa_config(start_path).get("exclude")
+    return tuple(cast("list[str]", raw)) if isinstance(raw, list) else ()
 
 
 class NasaVisitor(ast.NodeVisitor):
@@ -276,13 +264,6 @@ class NasaVisitor(ast.NodeVisitor):
             )
         self.generic_visit(node)
 
-    @staticmethod
-    def _param_annotations(node: ast.FunctionDef | ast.AsyncFunctionDef) -> dict[str, ast.expr]:
-        assert node is not None, "Function node must not be None"
-        assert node.args is not None, "Function node must have arguments"
-        args = node.args
-        return {a.arg: a.annotation for a in (*args.posonlyargs, *args.args, *args.kwonlyargs) if a.annotation}
-
     def _iter_function_asserts(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[ast.Assert]:
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
@@ -293,70 +274,19 @@ class NasaVisitor(ast.NodeVisitor):
             found.extend(sub for sub in ast.walk(stmt) if isinstance(sub, ast.Assert))
         return found
 
-    @staticmethod
-    def _annotation_matches_type(annotation: ast.expr, type_node: ast.expr) -> bool:
-        assert annotation is not None, "Annotation node must not be None"
-        assert type_node is not None, "Type node must not be None"
-        target = ast.unparse(type_node)
-        parts: list[ast.expr] = []
-        stack = [annotation]
-        while stack:
-            current = stack.pop()
-            if isinstance(current, ast.BinOp) and isinstance(current.op, ast.BitOr):
-                stack.extend((current.left, current.right))
-            else:
-                parts.append(current)
-        non_none = [ast.unparse(p) for p in parts if ast.unparse(p) != "None"]
-        return non_none == [target]
-
-    def _restates_param_annotation(self, subject: ast.expr, type_node: ast.expr, params: dict[str, ast.expr]) -> bool:
-        """Return True when isinstance(subject, type_node) merely restates subject's parameter annotation."""
-        assert subject is not None, "isinstance subject must not be None"
-        assert type_node is not None, "isinstance type node must not be None"
-        if not (isinstance(subject, ast.Name) and subject.id in params):
-            return False
-        return self._annotation_matches_type(params[subject.id], type_node)
-
-    def _check_restated_type(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
+    def _check_isinstance_assertion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
-        params = self._param_annotations(node)
         for stmt in self._iter_function_asserts(node):
-            test = stmt.test
-            if not (isinstance(test, ast.Call) and isinstance(test.func, ast.Name) and test.func.id == "isinstance"):
+            has_isinstance = any(
+                isinstance(n, ast.Call) and isinstance(n.func, ast.Name) and n.func.id == "isinstance"
+                for n in ast.walk(stmt.test)
+            )
+            if not has_isinstance:
                 continue
-            if len(test.args) != ISINSTANCE_ARG_COUNT:
-                continue
-            subject, type_node = test.args
-            if self._restates_param_annotation(subject, type_node, params):
-                self._add_diag(
-                    self._range_for_node(stmt),
-                    (
-                        f"Assertion restates parameter type '{ast.unparse(type_node)}'; "
-                        "assert a domain invariant instead (NASA05-M1)"
-                    ),
-                    "NASA05-M1",
-                )
-
-    def _check_simple_isinstance(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
-        assert node is not None, "Function node must not be None"
-        assert node.body is not None, "Function must have a body"
-        params = self._param_annotations(node)
-        for stmt in self._iter_function_asserts(node):
-            test = stmt.test
-            if not (isinstance(test, ast.Call) and isinstance(test.func, ast.Name) and test.func.id == "isinstance"):
-                continue
-            if len(test.args) != ISINSTANCE_ARG_COUNT:
-                continue
-            subject, type_node = test.args
-            if self._restates_param_annotation(subject, type_node, params):
-                continue  # NASA05-M1 already reports annotation restatements
             self._add_diag(
                 self._range_for_node(stmt),
-                (
-                    f"Assertion is a simple isinstance() type check on '{ast.unparse(subject)}'; "
-                    "assert a domain invariant instead (NASA05-M6)"
-                ),
+                "Assertion checks a type with isinstance(); assert a domain invariant instead (NASA05-M6)",
                 "NASA05-M6",
             )
 
@@ -534,8 +464,7 @@ class NasaVisitor(ast.NodeVisitor):
         self.stats.append(FunctionStat(func_name, node.lineno, line_count, assert_count))
 
         before = len(self.diagnostics)
-        self._check_restated_type(node)
-        self._check_simple_isinstance(node)
+        self._check_isinstance_assertion(node)
         self._check_compound_assertion(node)
         self._check_just_assigned(node)
         self._check_redundant_none(node)

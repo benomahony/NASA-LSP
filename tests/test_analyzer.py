@@ -491,46 +491,6 @@ def empty():
     assert diagnostics[0].code == "NASA05"
 
 
-def test_nasa05_m1_flags_isinstance_restating_annotation() -> None:
-    code = """
-def f(value: bool) -> bool:
-    assert isinstance(value, bool), "value must be a bool"
-    return value
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
-    assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA05-M1"
-    assert "bool" in diagnostics[0].message
-
-
-def test_nasa05_m1_flags_isinstance_restating_optional_annotation() -> None:
-    code = """
-from pathlib import Path
-def f(path: Path | None) -> None:
-    assert isinstance(path, Path), "path must be a Path"
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
-    assert [d.code for d in diagnostics] == ["NASA05-M1"]
-
-
-def test_nasa05_m1_ignores_isinstance_on_wider_annotation() -> None:
-    code = """
-def f(value: object) -> None:
-    assert isinstance(value, int), "value must be int"
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
-    assert diagnostics == []
-
-
-def test_nasa05_m1_ignores_isinstance_on_unannotated_param() -> None:
-    code = """
-def f(value):
-    assert isinstance(value, int), "value must be int"
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
-    assert diagnostics == []
-
-
 def test_nasa05_m2_flags_equality_after_literal_assignment() -> None:
     code = """
 class C:
@@ -685,23 +645,24 @@ def f(x):
     assert diagnostics == []
 
 
-def test_nasa05_m6_flags_isinstance_on_wider_annotation() -> None:
+def test_nasa05_m6_flags_isinstance_assertion() -> None:
     code = """
-def f(value: object) -> None:
-    assert isinstance(value, int), "value must be int"
+def f(x):
+    assert isinstance(x, int), "x must be an int"
+    return x
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
     assert [d.code for d in diagnostics] == ["NASA05-M6"]
 
 
-def test_nasa05_m6_ignores_isinstance_combined_with_condition() -> None:
+def test_nasa05_m6_flags_isinstance_inside_a_larger_expression() -> None:
     code = """
-def f(x):
-    assert isinstance(x, int) and x > 0, "x must be a positive int"
-    return x
+def f(query):
+    assert query is None or isinstance(query, str), "query must be a string or None"
+    return query
 """
     diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
-    assert diagnostics == []
+    assert [d.code for d in diagnostics] == ["NASA05-M6"]
 
 
 def test_nasa05_m6_ignores_non_isinstance_assert() -> None:
@@ -714,17 +675,7 @@ def f(x):
     assert diagnostics == []
 
 
-def test_nasa05_m6_does_not_double_flag_annotation_restatement() -> None:
-    code = """
-def f(value: bool) -> bool:
-    assert isinstance(value, bool), "value must be a bool"
-    return value
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1", "NASA05-M6"}))
-    assert [d.code for d in diagnostics] == ["NASA05-M1"]
-
-
-def test_nasa05_m6_excludes_simple_isinstance_from_meaningful_count() -> None:
+def test_nasa05_m6_excludes_isinstance_from_meaningful_count() -> None:
     code = """
 def f(x):
     assert isinstance(x, int), "x must be an int"
@@ -797,7 +748,7 @@ def f(value: bool) -> bool:
     assert isinstance(value, bool), "restates type again"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-M1"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-M6"}))
     codes = [d.code for d in diagnostics]
     assert "NASA05" in codes
 
@@ -816,11 +767,11 @@ def f(value: bool) -> bool:
 def test_ignore_comment_suppresses_specific_code() -> None:
     code = """
 def f(value: bool) -> bool:
-    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-M1]
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-M6]
     assert value in (True, False), "real check"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
     assert diagnostics == []
 
 
@@ -831,7 +782,7 @@ def f(value: bool) -> bool:
     assert value in (True, False), "real check"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
     assert diagnostics == []
 
 
@@ -842,8 +793,8 @@ def f(value: bool) -> bool:
     assert value in (True, False), "real check"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
-    assert [d.code for d in diagnostics] == ["NASA05-M1"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M6"]
 
 
 def test_ignore_comment_suppresses_function_level_rule_on_def_line() -> None:
@@ -858,26 +809,17 @@ def no_asserts():  # nasa: ignore[NASA05]
 def test_ignore_comment_only_affects_its_own_line() -> None:
     code = """
 def f(value: bool, other: bool) -> bool:
-    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-M1]
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-M6]
     assert isinstance(other, bool), "restates too"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M6"}))
     assert len(diagnostics) == 1
     assert diagnostics[0].range.start.line == 3
 
 
 def test_analyze_does_not_crash_on_undecodable_source() -> None:
     diagnostics, _ = analyze("\rº")
-    assert diagnostics == []
-
-
-def test_nasa05_m1_ignores_malformed_isinstance_arity() -> None:
-    code = """
-def f(value: int) -> None:
-    assert isinstance(value), "single-arg isinstance"
-"""
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M1"}))
     assert diagnostics == []
 
 
