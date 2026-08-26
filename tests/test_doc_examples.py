@@ -42,14 +42,14 @@ def test_readme_examples(example: CodeExample, eval_example: EvalExample) -> Non
     _ = eval_example.run(example)
 
 
-_SLUG = re.compile(r"[a-z][a-z-]*")
+_SLUG = re.compile(r"NASA0[0-9](?:-[a-z][a-z-]*)?")
 
 
 def _emitted_rule_codes() -> set[str]:
     """Every rule code passed to NasaVisitor._add_diag (its last argument), read from the source.
 
-    Codes are slug-shaped; the shape filter also skips the mutated string variants
-    (uppercased, ``XX..XX``-wrapped) that mutmut writes into its mutants tree.
+    Codes are ``NASA0N``-shaped; the shape filter also skips the mutated string
+    variants (uppercased, ``XX..XX``-wrapped) that mutmut writes into its mutants tree.
     """
     tree = ast.parse(Path(analyzer.__file__).read_text())
     codes: set[str] = set()
@@ -68,8 +68,8 @@ def _reference_section() -> str:
     return text.split("## Rule detection reference", 1)[1].split("## Original", 1)[0]
 
 
-# A rule label is a slug in backticks at the start of a line (`no-isinstance` — ...).
-_LABEL = r"(?m)^`([a-z][a-z-]*)`"
+# A rule label is a slug in backticks at the start of a line (`NASA05-isinstance` — ...).
+_LABEL = r"(?m)^`(NASA0[0-9](?:-[a-z][a-z-]*)?)`"
 
 
 def _documented_rules() -> set[str]:

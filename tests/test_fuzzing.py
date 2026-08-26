@@ -69,12 +69,12 @@ def test_generated_function_with_n_lines(n: int) -> None:
     # Should always return a list
     assert isinstance(diagnostics, list), "analyze() must return a list"
 
-    # If n > 60, should have max-function-length violation
-    nasa04_violations = [d for d in diagnostics if d.code == "max-function-length"]
+    # If n > 60, should have NASA04 violation
+    nasa04_violations = [d for d in diagnostics if d.code == "NASA04"]
     if n > 60:
-        assert len(nasa04_violations) > 0, f"Expected max-function-length violation for {n}-line function"
+        assert len(nasa04_violations) > 0, f"Expected NASA04 violation for {n}-line function"
     else:
-        # Might still have assert-density violation (no assertions), but checking max-function-length specifically
+        # Might still have NASA05 violation (no assertions), but checking NASA04 specifically
         assert True, "Function within size limits processed successfully"
 
 
@@ -91,13 +91,13 @@ def test_generated_function_with_n_assertions(n: int) -> None:
 
     assert isinstance(diagnostics, list), "analyze() must return a list"
 
-    # If n < 2, should have assert-density violation
-    nasa05_violations = [d for d in diagnostics if d.code == "assert-density"]
+    # If n < 2, should have NASA05 violation
+    nasa05_violations = [d for d in diagnostics if d.code == "NASA05"]
     if n < 2:
-        assert len(nasa05_violations) > 0, f"Expected assert-density violation for {n} assertions"
+        assert len(nasa05_violations) > 0, f"Expected NASA05 violation for {n} assertions"
     else:
-        # Might have max-function-length if too long, but not assert-density
-        assert len(nasa05_violations) == 0, f"Should not have assert-density violation with {n} assertions"
+        # Might have NASA04 if too long, but not NASA05
+        assert len(nasa05_violations) == 0, f"Should not have NASA05 violation with {n} assertions"
 
 
 @given(st.lists(st.text(alphabet=string.ascii_letters, min_size=1, max_size=20), min_size=0, max_size=50))
@@ -147,12 +147,12 @@ def func():
 """
 
     diagnostics, _ = analyze(code)
-    nasa02_violations = [d for d in diagnostics if d.code == "bounded-loops"]
+    nasa02_violations = [d for d in diagnostics if d.code == "NASA02"]
 
     if has_while_true:
-        assert len(nasa02_violations) > 0, "Expected bounded-loops violation for 'while True'"
+        assert len(nasa02_violations) > 0, "Expected NASA02 violation for 'while True'"
     else:
-        assert len(nasa02_violations) == 0, "Should not detect bounded-loops for 'while False'"
+        assert len(nasa02_violations) == 0, "Should not detect NASA02 for 'while False'"
 
 
 # ============================================================================
@@ -533,8 +533,8 @@ def func_{i}():
         code = "\n".join(lines)
         diagnostics, _ = analyze(code)
         assert isinstance(diagnostics, list), f"Must handle {scale_value}-line function"
-        nasa04_violations = [d for d in diagnostics if d.code == "max-function-length"]
-        assert len(nasa04_violations) > 0, "Should detect max-function-length for very long function"
+        nasa04_violations = [d for d in diagnostics if d.code == "NASA04"]
+        assert len(nasa04_violations) > 0, "Should detect NASA04 for very long function"
 
     elif scale_type == "very_long_lines":
         long_string = "x" * scale_value
@@ -558,12 +558,12 @@ def long_line():
 @pytest.mark.parametrize(
     ("violation_characteristics", "expected_codes"),
     [
-        ({"num_assertions": 0}, ["assert-density"]),
-        ({"num_assertions": 1}, ["assert-density"]),
-        ({"include_forbidden_api": True, "num_assertions": 2}, ["no-dynamic-api"]),
-        ({"include_while_true": True, "num_assertions": 2}, ["bounded-loops"]),
-        ({"include_recursion": True, "num_assertions": 2}, ["no-recursion"]),
-        ({"num_statements": 70, "num_assertions": 2}, ["max-function-length"]),
+        ({"num_assertions": 0}, ["NASA05"]),
+        ({"num_assertions": 1}, ["NASA05"]),
+        ({"include_forbidden_api": True, "num_assertions": 2}, ["NASA01-dynamic-api"]),
+        ({"include_while_true": True, "num_assertions": 2}, ["NASA02"]),
+        ({"include_recursion": True, "num_assertions": 2}, ["NASA01-recursion"]),
+        ({"num_statements": 70, "num_assertions": 2}, ["NASA04"]),
     ],
 )
 def test_fuzz_nasa_violation_detection(

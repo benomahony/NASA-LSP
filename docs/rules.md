@@ -2,14 +2,14 @@
 
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
-| **1. Simple Control Flow** | ✅ NASA LSP | no-dynamic-api (forbidden APIs), no-recursion (no recursion) |
-| **2. Bounded Loops** | ✅ NASA LSP | bounded-loops (no `while True`) |
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-dynamic-api (forbidden APIs), NASA01-recursion (no recursion) |
+| **2. Bounded Loops** | ✅ NASA LSP | NASA02 (no `while True`) |
 | **3. No Dynamic Allocation** | ❌ Not implemented | Could detect unbounded `list.append()` in loops |
-| **4. Function Length ≤60 lines** | ✅ NASA LSP | max-function-length |
-| **5. Assertion Density** | ✅ NASA LSP | assert-density (≥2 asserts per function) |
+| **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
+| **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
 | **7. Check Return Values** | ⚠️ Ruff | Use Ruff's `B018` rule |
-| **8. Limited Preprocessor** | ⚠️ Partial | no-dynamic-api bans `__import__`; use Ruff for imports |
+| **8. Limited Preprocessor** | ⚠️ Partial | NASA01-dynamic-api bans `__import__`; use Ruff for imports |
 | **9. Pointer Restrictions** | - N/A | Not applicable to Python |
 | **10. All Warnings Enabled** | ⚠️ Ruff + Mypy | Use Ruff's `ANN` + static type checker |
 
@@ -17,7 +17,7 @@
 
 ## Rule 1: Simple Control Flow
 
-### no-dynamic-api: Forbidden Dynamic APIs
+### NASA01-dynamic-api: Forbidden Dynamic APIs
 
 Flags calls to dynamic APIs that make code difficult to analyze:
 
@@ -28,7 +28,7 @@ Flags calls to dynamic APIs that make code difficult to analyze:
 
 **Rationale:** Simpler control flow translates into stronger capabilities for analysis and often results in improved code clarity.
 
-### no-recursion: No Recursion
+### NASA01-recursion: No Recursion
 
 Identifies direct recursive function calls where a function calls itself.
 
@@ -36,7 +36,7 @@ Identifies direct recursive function calls where a function calls itself.
 
 ## Rule 2: Bounded Loops
 
-### bounded-loops: Unbounded Loops
+### NASA02: Unbounded Loops
 
 Detects unbounded `while True` loops that violate the fixed upper bound requirement.
 
@@ -44,7 +44,7 @@ Detects unbounded `while True` loops that violate the fixed upper bound requirem
 
 ## Rule 4: Function Length Limit
 
-### max-function-length: No Function Longer Than 60 Lines
+### NASA04: No Function Longer Than 60 Lines
 
 Enforces the strict 60-line limit per function for verifiability and code clarity.
 
@@ -52,7 +52,7 @@ Enforces the strict 60-line limit per function for verifiability and code clarit
 
 ## Rule 5: Assertion Density
 
-### assert-density: Assertion Count
+### NASA05: Assertion Count
 
 Enforces minimum of 2 assert statements per function to detect impossible conditions and verify invariants.
 
@@ -60,27 +60,27 @@ Enforces minimum of 2 assert statements per function to detect impossible condit
 
 ### Assertion quality sub-rules
 
-An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `assert-density` count, so weak asserts cannot pad a function to the minimum. Every rule is on by default; disable individual rules with `[tool.nasa-lsp].disable` if needed.
+An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. Every rule is on by default; disable individual rules with `[tool.nasa-lsp].disable` if needed.
 
 ## Rule detection reference
 
 One example per rule; each block is run through the analyzer by `tests/test_doc_examples.py`, which also fails if a rule has no example.
 
-`no-dynamic-api` — call to a forbidden dynamic API:
+`NASA01-dynamic-api` — call to a forbidden dynamic API:
 
 ```python
 def f():
     eval("expr")
 ```
 
-`no-recursion` — a function that calls itself:
+`NASA01-recursion` — a function that calls itself:
 
 ```python
 def f():
     return f()
 ```
 
-`bounded-loops` — an unbounded `while True` loop:
+`NASA02` — an unbounded `while True` loop:
 
 ```python
 def f():
@@ -88,30 +88,30 @@ def f():
         pass
 ```
 
-`max-function-length` — a function whose body spans more than 60 lines (no example: the trigger is length alone).
+`NASA04` — a function whose body spans more than 60 lines (no example: the trigger is length alone).
 
-`assert-density` — fewer than two meaningful assertions:
+`NASA05` — fewer than two meaningful assertions:
 
 ```python
 def f():
     return 1
 ```
 
-`assert-message` — an assertion with no message:
+`NASA05-message` — an assertion with no message:
 
 ```python
 def f(x):
     assert x > 0
 ```
 
-`single-condition` — a compound assertion joined by `and` / `or`:
+`NASA05-single-condition` — a compound assertion joined by `and` / `or`:
 
 ```python
 def f(x):
     assert x > 0 and x < 100, "x must be within range"
 ```
 
-`no-constant-assert` — an assertion on a value that was just assigned a literal:
+`NASA05-constant-assert` — an assertion on a value that was just assigned a literal:
 
 ```python
 def f():
@@ -119,7 +119,7 @@ def f():
     assert x is not None, "x must be set"
 ```
 
-`no-redundant-none` — a `None` check made redundant by a following `isinstance`:
+`NASA05-redundant-none` — a `None` check made redundant by a following `isinstance`:
 
 ```python
 def f(x):
@@ -127,7 +127,7 @@ def f(x):
     assert isinstance(x, int), "x must be an int"
 ```
 
-`no-total-op` — a truthiness assertion on a total string operation:
+`NASA05-total-op` — a truthiness assertion on a total string operation:
 
 ```python
 def f(k):
@@ -135,7 +135,7 @@ def f(k):
     assert name, "name must be non-empty"
 ```
 
-`no-guaranteed-len` — a post-condition already guaranteed by `len()`:
+`NASA05-guaranteed-len` — a post-condition already guaranteed by `len()`:
 
 ```python
 def f(x):
@@ -143,7 +143,7 @@ def f(x):
     assert n >= 0, "length is non-negative"
 ```
 
-`no-isinstance` — an assertion that checks a type with `isinstance()`:
+`NASA05-isinstance` — an assertion that checks a type with `isinstance()`:
 
 ```python
 def f(x):

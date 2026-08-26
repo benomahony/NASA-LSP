@@ -96,12 +96,12 @@ For a VS Code extension, install from the marketplace or configure manually by a
 
 The LSP runs automatically on Python files and provides inline diagnostics as you type. Violations appear as warnings with diagnostic codes:
 
-- `no-dynamic-api`: Use of forbidden dynamic API
-- `no-recursion`: Direct recursive function call
-- `bounded-loops`: Unbounded while True loop
-- `assert-density`: Insufficient assertions in function
+- `NASA01-dynamic-api`: Use of forbidden dynamic API
+- `NASA01-recursion`: Direct recursive function call
+- `NASA02`: Unbounded while True loop
+- `NASA05`: Insufficient assertions in function
 
-Rule 5 also enforces assertion-*quality* checks (`assert-message`, `single-condition`, `no-isinstance`, and more) that flag assertions a static tool can already prove — see [docs/rules.md](docs/rules.md#assertion-quality-sub-rules).
+Rule 5 also enforces assertion-*quality* checks (`NASA05-message`, `NASA05-single-condition`, `NASA05-isinstance`, and more) that flag assertions a static tool can already prove — see [docs/rules.md](docs/rules.md#assertion-quality-sub-rules).
 
 ## Example Violations
 
@@ -113,7 +113,7 @@ def process_data(items):
             break
 ```
 
-This code violates bounded-loops with an unbounded loop and assert-density with no assertions.
+This code violates NASA02 with an unbounded loop and NASA05 with no assertions.
 
 Fixed version:
 
@@ -129,7 +129,7 @@ def process_data(items):
         assert item is not None, "queue entries must never be None"
 ```
 
-The assertions state domain invariants rather than restating that `items` is a `list` — a bare `assert isinstance(items, list)` would be flagged by `no-isinstance`.
+The assertions state domain invariants rather than restating that `items` is a `list` — a bare `assert isinstance(items, list)` would be flagged by `NASA05-isinstance`.
 
 ## SAFETY-CRITICAL CODING RULES
 
@@ -219,14 +219,14 @@ styles that have been advanced for safety-critical systems such as the "design b
 
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
-| **1. Simple Control Flow** | ✅ NASA LSP | no-dynamic-api (forbidden APIs), no-recursion (no recursion) |
-| **2. Bounded Loops** | ✅ NASA LSP | bounded-loops (no `while True`) |
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-dynamic-api (forbidden APIs), NASA01-recursion (no recursion) |
+| **2. Bounded Loops** | ✅ NASA LSP | NASA02 (no `while True`) |
 | **3. No Dynamic Allocation** | ❌ Not implemented | Could detect unbounded `list.append()` in loops |
-| **4. Function Length ≤60 lines** | ✅ NASA LSP | max-function-length |
-| **5. Assertion Density** | ✅ NASA LSP | assert-density (≥2 asserts per function) |
+| **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
+| **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
 | **7. Check Return Values** | ⚠️ Ruff | Use Ruff's `B018` rule |
-| **8. Limited Preprocessor** | ⚠️ Partial | no-dynamic-api bans `__import__`; use Ruff for imports |
+| **8. Limited Preprocessor** | ⚠️ Partial | NASA01-dynamic-api bans `__import__`; use Ruff for imports |
 | **9. Pointer Restrictions** | - N/A | Not applicable to Python |
 | **10. All Warnings Enabled** | ⚠️ Ruff + Mypy | Use Ruff's `ANN` + static type checker |
 
@@ -234,7 +234,7 @@ styles that have been advanced for safety-critical systems such as the "design b
 
 ### Rule 1: Simple Control Flow
 
-**no-dynamic-api: Forbidden Dynamic APIs**
+**NASA01-dynamic-api: Forbidden Dynamic APIs**
 
 Flags calls to dynamic APIs that make code difficult to analyze:
 
@@ -243,25 +243,25 @@ Flags calls to dynamic APIs that make code difficult to analyze:
 - `__import__`
 - `setattr`, `getattr`
 
-**no-recursion: No Recursion**
+**NASA01-recursion: No Recursion**
 
 Identifies direct recursive function calls where a function calls itself.
 
 ### Rule 2: Bounded Loops
 
-**bounded-loops: Unbounded Loops**
+**NASA02: Unbounded Loops**
 
 Detects unbounded `while True` loops that violate the fixed upper bound requirement.
 
 ### Rule 4: Function Length Limit
 
-**max-function-length: No Function Longer Than 60 Lines**
+**NASA04: No Function Longer Than 60 Lines**
 
 Enforces the strict 60-line limit per function for verifiability and code clarity.
 
 ### Rule 5: Assertion Density
 
-**assert-density: Assertion Count**
+**NASA05: Assertion Count**
 
 Enforces minimum of 2 assert statements per function to detect impossible conditions and verify invariants.
 

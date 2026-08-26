@@ -47,9 +47,9 @@ def test_format_diagnostic_shows_error_severity() -> None:
     diag = Diagnostic(
         range=Range(start=Position(line=0, character=0), end=Position(line=0, character=5)),
         message="never fails",
-        code="no-constant-assert",
+        code="NASA05-constant-assert",
     )
-    assert format_diagnostic(path, diag) == "file.py:1:1: error: no-constant-assert never fails"
+    assert format_diagnostic(path, diag) == "file.py:1:1: error: NASA05-constant-assert never fails"
 
 
 def test_lint_no_args_lints_cwd() -> None:
@@ -81,8 +81,8 @@ def foo():
 """)
         result = runner.invoke(app, ["lint", str(bad_file)])
         assert result.exit_code == 1
-        assert "no-dynamic-api" in result.stdout
-        assert "assert-density" in result.stdout
+        assert "NASA01-dynamic-api" in result.stdout
+        assert "NASA05" in result.stdout
 
 
 def test_lint_directory() -> None:
@@ -106,7 +106,7 @@ def test_lint_directory_with_violations() -> None:
         _ = bad_file.write_text("def foo(): pass")
         result = runner.invoke(app, ["lint", str(tmpdir)])
         assert result.exit_code == 1
-        assert "assert-density" in result.stdout
+        assert "NASA05" in result.stdout
 
 
 def test_lint_multiple_files() -> None:

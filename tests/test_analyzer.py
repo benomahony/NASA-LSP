@@ -17,10 +17,8 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # The structural rules only: base-rule tests use illustrative asserts that should not
-# trip the assertion-quality rules (assert-message and the assert-density-M family).
-RULES_WITHOUT_ASSERT_MESSAGES = frozenset(
-    {"no-dynamic-api", "no-recursion", "bounded-loops", "max-function-length", "assert-density"}
-)
+# trip the assertion-quality rules (NASA05-message and the NASA05-M family).
+RULES_WITHOUT_ASSERT_MESSAGES = frozenset({"NASA01-dynamic-api", "NASA01-recursion", "NASA02", "NASA04", "NASA05"})
 
 
 def test_analyze_returns_empty_for_syntax_error() -> None:
@@ -61,7 +59,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "eval" in diagnostics[0].message
     assert isinstance(diagnostics[0], Diagnostic)
 
@@ -75,7 +73,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "exec" in diagnostics[0].message
 
 
@@ -88,7 +86,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "compile" in diagnostics[0].message
 
 
@@ -101,7 +99,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "globals" in diagnostics[0].message
 
 
@@ -114,7 +112,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "locals" in diagnostics[0].message
 
 
@@ -127,7 +125,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "__import__" in diagnostics[0].message
 
 
@@ -140,7 +138,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "setattr" in diagnostics[0].message
 
 
@@ -153,7 +151,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "getattr" in diagnostics[0].message
 
 
@@ -166,7 +164,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-dynamic-api"
+    assert diagnostics[0].code == "NASA01-dynamic-api"
     assert "eval" in diagnostics[0].message
 
 
@@ -194,7 +192,7 @@ def factorial(n):
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-recursion"
+    assert diagnostics[0].code == "NASA01-recursion"
     assert "factorial" in diagnostics[0].message
     assert "Recursive" in diagnostics[0].message
 
@@ -222,8 +220,8 @@ def outer():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = [d.code for d in diagnostics]
-    assert "no-recursion" in codes
-    inner_diag = next(d for d in diagnostics if d.code == "no-recursion")
+    assert "NASA01-recursion" in codes
+    inner_diag = next(d for d in diagnostics if d.code == "NASA01-recursion")
     assert "inner" in inner_diag.message
 
 
@@ -237,7 +235,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "bounded-loops"
+    assert diagnostics[0].code == "NASA02"
     assert "while True" in diagnostics[0].message
 
 
@@ -273,8 +271,8 @@ def test_max_function_length_detects_long_function() -> None:
     code = "def long_func():\n    assert True\n    assert False\n" + "\n".join(lines)
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = [d.code for d in diagnostics]
-    assert "max-function-length" in codes
-    nasa04 = next(d for d in diagnostics if d.code == "max-function-length")
+    assert "NASA04" in codes
+    nasa04 = next(d for d in diagnostics if d.code == "NASA04")
     assert "long_func" in nasa04.message
     assert "60" in nasa04.message
 
@@ -298,7 +296,7 @@ def no_asserts():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "assert-density"
+    assert diagnostics[0].code == "NASA05"
     assert "0 assert" in diagnostics[0].message
 
 
@@ -309,7 +307,7 @@ def one_assert():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "assert-density"
+    assert diagnostics[0].code == "NASA05"
     assert "1 assert" in diagnostics[0].message
 
 
@@ -358,8 +356,8 @@ def outer():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = [d.code for d in diagnostics]
-    assert codes.count("assert-density") == 1
-    nasa05 = next(d for d in diagnostics if d.code == "assert-density")
+    assert codes.count("NASA05") == 1
+    nasa05 = next(d for d in diagnostics if d.code == "NASA05")
     assert "outer" in nasa05.message
 
 
@@ -375,7 +373,7 @@ def outer():
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     outer_diags = [d for d in diagnostics if "outer" in d.message]
     assert len(outer_diags) == 1
-    assert outer_diags[0].code == "assert-density"
+    assert outer_diags[0].code == "NASA05"
 
 
 def test_async_function_recursion() -> None:
@@ -387,7 +385,7 @@ async def recursive():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "no-recursion"
+    assert diagnostics[0].code == "NASA01-recursion"
     assert "recursive" in diagnostics[0].message
 
 
@@ -398,7 +396,7 @@ async def no_asserts():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "assert-density"
+    assert diagnostics[0].code == "NASA05"
 
 
 def test_async_function_with_enough_asserts() -> None:
@@ -435,9 +433,9 @@ def bad():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = {d.code for d in diagnostics}
-    assert "no-dynamic-api" in codes
-    assert "bounded-loops" in codes
-    assert "assert-density" in codes
+    assert "NASA01-dynamic-api" in codes
+    assert "NASA02" in codes
+    assert "NASA05" in codes
 
 
 def test_module_level_code_not_checked_for_asserts() -> None:
@@ -459,7 +457,7 @@ class Foo:
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "assert-density"
+    assert diagnostics[0].code == "NASA05"
     assert "method" in diagnostics[0].message
 
 
@@ -490,7 +488,7 @@ def empty():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "assert-density"
+    assert diagnostics[0].code == "NASA05"
 
 
 def test_no_constant_assert_flags_equality_after_literal_assignment() -> None:
@@ -500,8 +498,8 @@ class C:
         self.findings = {}
         assert self.findings == {}, "findings must start empty"
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-constant-assert"}))
-    assert [d.code for d in diagnostics] == ["no-constant-assert"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-constant-assert"}))
+    assert [d.code for d in diagnostics] == ["NASA05-constant-assert"]
 
 
 def test_no_constant_assert_flags_not_none_after_constant_assignment() -> None:
@@ -511,8 +509,8 @@ def f():
     assert x is not None, "x must be set"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-constant-assert"}))
-    assert [d.code for d in diagnostics] == ["no-constant-assert"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-constant-assert"}))
+    assert [d.code for d in diagnostics] == ["NASA05-constant-assert"]
 
 
 def test_no_constant_assert_ignores_assert_after_computed_value() -> None:
@@ -522,7 +520,7 @@ def f():
     assert x is not None, "compute may return None"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-constant-assert"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-constant-assert"}))
     assert diagnostics == []
 
 
@@ -534,7 +532,7 @@ def f(y):
     assert y is not None, "y comes from external call"
     return y
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-constant-assert"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-constant-assert"}))
     assert diagnostics == []
 
 
@@ -545,8 +543,8 @@ def f(x):
     assert isinstance(x, int), "x must be an int"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-redundant-none"}))
-    assert [d.code for d in diagnostics] == ["no-redundant-none"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-redundant-none"}))
+    assert [d.code for d in diagnostics] == ["NASA05-redundant-none"]
 
 
 def test_no_redundant_none_ignores_none_check_for_different_variable() -> None:
@@ -556,7 +554,7 @@ def f(x, y):
     assert isinstance(y, int), "y must be an int"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-redundant-none"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-redundant-none"}))
     assert diagnostics == []
 
 
@@ -566,7 +564,7 @@ def f(x):
     assert x is not None, "x must not be None"
     return len(x)
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-redundant-none"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-redundant-none"}))
     assert diagnostics == []
 
 
@@ -577,8 +575,8 @@ def f(kind):
     assert name, "kind name must be non-empty"
     return name
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-total-op"}))
-    assert [d.code for d in diagnostics] == ["no-total-op"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-total-op"}))
+    assert [d.code for d in diagnostics] == ["NASA05-total-op"]
 
 
 def test_no_total_op_flags_truthiness_of_fstring_result() -> None:
@@ -588,8 +586,8 @@ def f(kind):
     assert label, "label must be non-empty"
     return label
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-total-op"}))
-    assert [d.code for d in diagnostics] == ["no-total-op"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-total-op"}))
+    assert [d.code for d in diagnostics] == ["NASA05-total-op"]
 
 
 def test_no_total_op_ignores_truthiness_of_arbitrary_call() -> None:
@@ -599,7 +597,7 @@ def f(x):
     assert value, "compute must return a truthy value"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-total-op"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-total-op"}))
     assert diagnostics == []
 
 
@@ -610,7 +608,7 @@ def f(kind):
     assert name == "expected", "name must match"
     return name
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-total-op"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-total-op"}))
     assert diagnostics == []
 
 
@@ -621,8 +619,8 @@ def f(x):
     assert n >= 0, "length must be non-negative"
     return n
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-guaranteed-len"}))
-    assert [d.code for d in diagnostics] == ["no-guaranteed-len"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-guaranteed-len"}))
+    assert [d.code for d in diagnostics] == ["NASA05-guaranteed-len"]
 
 
 def test_no_guaranteed_len_ignores_positive_length_check() -> None:
@@ -632,7 +630,7 @@ def f(x):
     assert n > 0, "must be non-empty"
     return n
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-guaranteed-len"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-guaranteed-len"}))
     assert diagnostics == []
 
 
@@ -643,7 +641,7 @@ def f(x):
     assert n >= 0, "compute may return a negative value"
     return n
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-guaranteed-len"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-guaranteed-len"}))
     assert diagnostics == []
 
 
@@ -653,8 +651,8 @@ def f(x):
     assert isinstance(x, int), "x must be an int"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-isinstance"}))
-    assert [d.code for d in diagnostics] == ["no-isinstance"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-isinstance"}))
+    assert [d.code for d in diagnostics] == ["NASA05-isinstance"]
 
 
 def test_no_isinstance_flags_isinstance_inside_a_larger_expression() -> None:
@@ -663,8 +661,8 @@ def f(query):
     assert query is None or isinstance(query, str), "query must be a string or None"
     return query
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-isinstance"}))
-    assert [d.code for d in diagnostics] == ["no-isinstance"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-isinstance"}))
+    assert [d.code for d in diagnostics] == ["NASA05-isinstance"]
 
 
 def test_no_isinstance_ignores_non_isinstance_assert() -> None:
@@ -673,7 +671,7 @@ def f(x):
     assert x > 0, "x must be positive"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-isinstance"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-isinstance"}))
     assert diagnostics == []
 
 
@@ -684,10 +682,10 @@ def f(x):
     assert x > 5, "x must exceed the threshold"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"assert-density", "no-isinstance"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-isinstance"}))
     codes = [d.code for d in diagnostics]
-    assert "no-isinstance" in codes
-    assert "assert-density" in codes
+    assert "NASA05-isinstance" in codes
+    assert "NASA05" in codes
 
 
 def test_single_condition_flags_or_type_guard() -> None:
@@ -696,8 +694,8 @@ def main(argv):
     assert argv is None or isinstance(argv, list), "argv is a list of args or None"
     return 0
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"single-condition"}))
-    assert [d.code for d in diagnostics] == ["single-condition"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-single-condition"}))
+    assert [d.code for d in diagnostics] == ["NASA05-single-condition"]
 
 
 def test_single_condition_ignores_single_condition_assert() -> None:
@@ -706,7 +704,7 @@ def f(x):
     assert x > 0, "x must be positive"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"single-condition"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-single-condition"}))
     assert diagnostics == []
 
 
@@ -716,7 +714,7 @@ def f(i, items):
     assert 0 <= i < len(items), "index must be in range"
     return items[i]
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"single-condition"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-single-condition"}))
     assert diagnostics == []
 
 
@@ -727,10 +725,10 @@ def f(x, y):
     assert x != y, "x and y must differ"
     return x + y
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"assert-density", "single-condition"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-single-condition"}))
     codes = [d.code for d in diagnostics]
-    assert "single-condition" in codes
-    assert "assert-density" in codes
+    assert "NASA05-single-condition" in codes
+    assert "NASA05" in codes
 
 
 def test_default_rules_enforce_the_quality_family() -> None:
@@ -740,7 +738,7 @@ def f(query):
     return query
 """
     diagnostics, _ = analyze(code, enabled_rules=ALL_RULES)
-    assert "single-condition" in [d.code for d in diagnostics], "compound assertions must fail by default"
+    assert "NASA05-single-condition" in [d.code for d in diagnostics], "compound assertions must fail by default"
 
 
 def test_assert_density_count_excludes_flagged_assertions_when_m_rule_enabled() -> None:
@@ -750,9 +748,9 @@ def f(value: bool) -> bool:
     assert isinstance(value, bool), "restates type again"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"assert-density", "no-isinstance"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05", "NASA05-isinstance"}))
     codes = [d.code for d in diagnostics]
-    assert "assert-density" in codes
+    assert "NASA05" in codes
 
 
 def test_assert_density_count_keeps_flagged_assertions_when_m_rule_disabled() -> None:
@@ -762,18 +760,18 @@ def f(value: bool) -> bool:
     assert isinstance(value, bool), "restates type again"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"assert-density"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05"}))
     assert diagnostics == []
 
 
 def test_ignore_comment_suppresses_specific_code() -> None:
     code = """
 def f(value: bool) -> bool:
-    assert isinstance(value, bool), "restates"  # nasa: ignore[no-isinstance]
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-isinstance]
     assert value in (True, False), "real check"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-isinstance"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-isinstance"}))
     assert diagnostics == []
 
 
@@ -784,38 +782,38 @@ def f(value: bool) -> bool:
     assert value in (True, False), "real check"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-isinstance"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-isinstance"}))
     assert diagnostics == []
 
 
 def test_ignore_comment_for_other_code_does_not_suppress() -> None:
     code = """
 def f(value: bool) -> bool:
-    assert isinstance(value, bool), "restates"  # nasa: ignore[max-function-length]
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA04]
     assert value in (True, False), "real check"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-isinstance"}))
-    assert [d.code for d in diagnostics] == ["no-isinstance"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-isinstance"}))
+    assert [d.code for d in diagnostics] == ["NASA05-isinstance"]
 
 
 def test_ignore_comment_suppresses_function_level_rule_on_def_line() -> None:
     code = """
-def no_asserts():  # nasa: ignore[assert-density]
+def no_asserts():  # nasa: ignore[NASA05]
     return 1
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"assert-density"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05"}))
     assert diagnostics == []
 
 
 def test_ignore_comment_only_affects_its_own_line() -> None:
     code = """
 def f(value: bool, other: bool) -> bool:
-    assert isinstance(value, bool), "restates"  # nasa: ignore[no-isinstance]
+    assert isinstance(value, bool), "restates"  # nasa: ignore[NASA05-isinstance]
     assert isinstance(other, bool), "restates too"
     return value
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-isinstance"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-isinstance"}))
     assert len(diagnostics) == 1
     assert diagnostics[0].range.start.line == 3
 
@@ -832,8 +830,8 @@ def f():
     assert x, "x was just set"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-constant-assert"}))
-    assert [d.code for d in diagnostics] == ["no-constant-assert"]
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-constant-assert"}))
+    assert [d.code for d in diagnostics] == ["NASA05-constant-assert"]
 
 
 def test_no_redundant_none_ignores_is_not_check_against_non_none() -> None:
@@ -843,7 +841,7 @@ def f(x):
     assert isinstance(x, int), "x must be int"
     return x
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-redundant-none"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-redundant-none"}))
     assert diagnostics == []
 
 
@@ -854,7 +852,7 @@ def f(x):
     assert 0 <= n <= 10, "bounded"
     return n
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-guaranteed-len"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-guaranteed-len"}))
     assert diagnostics == []
 
 
@@ -865,16 +863,16 @@ def f(x, k):
     assert k >= 0, "k is unrelated to n"
     return n
 """
-    diagnostics, _ = analyze(code, enabled_rules=frozenset({"no-guaranteed-len"}))
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-guaranteed-len"}))
     assert diagnostics == []
 
 
 def test_rule_severity_maps_documented_levels() -> None:
-    assert rule_severity("no-dynamic-api") == "error"
-    assert rule_severity("max-function-length") == "warning"
-    assert rule_severity("assert-density") == "error"
-    assert rule_severity("no-total-op") == "information"
-    assert rule_severity("single-condition") == "warning"
+    assert rule_severity("NASA01-dynamic-api") == "error"
+    assert rule_severity("NASA04") == "warning"
+    assert rule_severity("NASA05") == "error"
+    assert rule_severity("NASA05-total-op") == "information"
+    assert rule_severity("NASA05-single-condition") == "warning"
 
 
 def test_rule_severity_defaults_to_warning_for_unknown_code() -> None:
@@ -888,7 +886,7 @@ def test_load_exclude_patterns_reads_config(tmp_path: Path) -> None:
 
 
 def test_load_exclude_patterns_defaults_to_empty(tmp_path: Path) -> None:
-    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\ndisable = ["assert-density"]\n')
+    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\ndisable = ["NASA05"]\n')
     patterns = load_exclude_patterns(tmp_path)
     assert patterns == ()
 
@@ -899,8 +897,8 @@ def test_load_enabled_rules_defaults_to_all_rules(tmp_path: Path) -> None:
 
 
 def test_load_enabled_rules_disables_listed_rules(tmp_path: Path) -> None:
-    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\ndisable = ["max-function-length", "no-total-op"]\n')
+    _ = (tmp_path / "pyproject.toml").write_text('[tool.nasa-lsp]\ndisable = ["NASA04", "NASA05-total-op"]\n')
     rules = load_enabled_rules(tmp_path)
-    assert "max-function-length" not in rules
-    assert "no-total-op" not in rules
-    assert rules == ALL_RULES - {"max-function-length", "no-total-op"}
+    assert "NASA04" not in rules
+    assert "NASA05-total-op" not in rules
+    assert rules == ALL_RULES - {"NASA04", "NASA05-total-op"}
