@@ -225,7 +225,7 @@ class NasaVisitor(ast.NodeVisitor):
             suppressed = self.ignored[rng.start.line]
             if suppressed is None or code in suppressed:
                 return
-        self.diagnostics.append(Diagnostic(range=rng, message=message, code=code))
+        self.diagnostics.append(Diagnostic(range=rng, message=f"{message} ({code})", code=code))
 
     @override
     def visit_Call(self, node: ast.Call) -> None:
@@ -246,7 +246,7 @@ class NasaVisitor(ast.NodeVisitor):
             if name in forbidden:
                 self._add_diag(
                     self._range_for_node(target_node),
-                    f"Call to forbidden API '{name}' (NASA01-forbidden-api)",
+                    f"Call to forbidden API '{name}'",
                     "NASA01-forbidden-api",
                 )
 
@@ -259,7 +259,7 @@ class NasaVisitor(ast.NodeVisitor):
         if isinstance(node.test, ast.Constant) and node.test.value is True:
             self._add_diag(
                 self._range_for_node(node),
-                "Unbounded loop 'while True' (NASA02)",
+                "Unbounded loop 'while True'",
                 "NASA02",
             )
         self.generic_visit(node)
@@ -271,7 +271,7 @@ class NasaVisitor(ast.NodeVisitor):
         if node.msg is None:
             self._add_diag(
                 self._range_for_node(node),
-                "Assert statement missing descriptive error message (NASA05-message)",
+                "Assert statement missing descriptive error message",
                 "NASA05-message",
             )
         self.generic_visit(node)
@@ -298,7 +298,7 @@ class NasaVisitor(ast.NodeVisitor):
                 continue
             self._add_diag(
                 self._range_for_node(stmt),
-                "Assertion checks a type with isinstance(); assert a domain invariant instead (NASA05-isinstance)",
+                "Assertion checks a type with isinstance(); assert a domain invariant instead",
                 "NASA05-isinstance",
             )
 
@@ -310,7 +310,7 @@ class NasaVisitor(ast.NodeVisitor):
                 continue
             self._add_diag(
                 self._range_for_node(stmt),
-                "Compound assertion uses 'and'/'or'; assert one condition per statement (NASA05-single-condition)",
+                "Compound assertion uses 'and'/'or'; assert one condition per statement",
                 "NASA05-single-condition",
             )
 
@@ -369,7 +369,7 @@ class NasaVisitor(ast.NodeVisitor):
                     continue
                 target = ast.unparse(prev.targets[0])
                 if self._assert_always_holds(current.test, target, prev.value):
-                    message = f"Assertion always holds: '{target}' was just assigned a literal (NASA05-constant-assert)"
+                    message = f"Assertion always holds: '{target}' was just assigned a constant literal"
                     self._add_diag(self._range_for_node(current), message, "NASA05-constant-assert")
 
     def _check_redundant_none(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
@@ -390,7 +390,7 @@ class NasaVisitor(ast.NodeVisitor):
                 subject = ast.unparse(check.left)
                 if len(nxt.args) != ISINSTANCE_ARG_COUNT or subject != ast.unparse(nxt.args[0]):
                     continue
-                message = f"Redundant None check on '{subject}'; isinstance below excludes None (NASA05-redundant-none)"
+                message = f"Redundant None check on '{subject}'; the isinstance below excludes None"
                 self._add_diag(self._range_for_node(prev), message, "NASA05-redundant-none")
 
     def _check_total_op_truthiness(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
@@ -409,9 +409,7 @@ class NasaVisitor(ast.NodeVisitor):
                 test = current.test
                 target = ast.unparse(prev.targets[0])
                 if isinstance(test, (ast.Name, ast.Attribute)) and ast.unparse(test) == target:
-                    message = (
-                        f"Assertion on total-op result '{target}' rarely fails; confirm the invariant (NASA05-total-op)"
-                    )
+                    message = f"Assertion on total-op result '{target}' rarely fails; confirm the invariant"
                     self._add_diag(self._range_for_node(current), message, "NASA05-total-op")
 
     def _check_guaranteed_length(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
@@ -435,9 +433,7 @@ class NasaVisitor(ast.NodeVisitor):
                     isinstance(test.ops[0], ast.Gt) and bound.value == -1
                 )
                 if non_negative:
-                    message = (
-                        f"Post-condition '{target}' is guaranteed by len() and can never fail (NASA05-guaranteed-len)"
-                    )
+                    message = f"Post-condition '{target}' is guaranteed by len() and can never fail"
                     self._add_diag(self._range_for_node(current), message, "NASA05-guaranteed-len")
 
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
@@ -492,14 +488,14 @@ class NasaVisitor(ast.NodeVisitor):
         if self._check_recursion(node):
             self._add_diag(
                 func_name_range,
-                f"Recursive call to '{func_name}' (NASA01-recursion)",
+                f"Recursive call to '{func_name}'",
                 "NASA01-recursion",
             )
 
         if line_count >= MAX_FUNCTION_LINES:
             self._add_diag(
                 func_name_range,
-                f"Function '{func_name}' longer than {MAX_FUNCTION_LINES} lines (NASA04)",
+                f"Function '{func_name}' longer than {MAX_FUNCTION_LINES} lines",
                 "NASA04",
             )
 
@@ -508,7 +504,7 @@ class NasaVisitor(ast.NodeVisitor):
                 func_name_range,
                 (
                     f"Function '{func_name}' has only {meaningful_asserts} assert(s) that can fail on a bug; "
-                    f"expected at least {MIN_ASSERTS_PER_FUNCTION} (NASA05)"
+                    f"expected at least {MIN_ASSERTS_PER_FUNCTION}"
                 ),
                 "NASA05",
             )
