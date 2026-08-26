@@ -43,11 +43,11 @@ def test_to_lsp_diagnostic_preserves_all_fields() -> None:
     diag = Diagnostic(
         range=Range(start=Position(line=99, character=50), end=Position(line=100, character=0)),
         message="Long message with special chars: <>&\"'",
-        code="NASA01-dynamic-api",
+        code="NASA01-forbidden-api",
     )
     result = to_lsp_diagnostic(diag)
     assert result.message == "Long message with special chars: <>&\"'"
-    assert result.code == "NASA01-dynamic-api"
+    assert result.code == "NASA01-forbidden-api"
     assert isinstance(result.range, types.Range)
     assert isinstance(result.range.start, types.Position)
     assert isinstance(result.range.end, types.Position)

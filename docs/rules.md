@@ -2,14 +2,14 @@
 
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
-| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-dynamic-api (forbidden APIs), NASA01-recursion (no recursion) |
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
 | **2. Bounded Loops** | ✅ NASA LSP | NASA02 (no `while True`) |
 | **3. No Dynamic Allocation** | ❌ Not implemented | Could detect unbounded `list.append()` in loops |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
 | **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
 | **7. Check Return Values** | ⚠️ Ruff | Use Ruff's `B018` rule |
-| **8. Limited Preprocessor** | ⚠️ Partial | NASA01-dynamic-api bans `__import__`; use Ruff for imports |
+| **8. Limited Preprocessor** | ⚠️ Partial | NASA01-forbidden-api bans `__import__`; use Ruff for imports |
 | **9. Pointer Restrictions** | - N/A | Not applicable to Python |
 | **10. All Warnings Enabled** | ⚠️ Ruff + Mypy | Use Ruff's `ANN` + static type checker |
 
@@ -17,7 +17,7 @@
 
 ## Rule 1: Simple Control Flow
 
-### NASA01-dynamic-api: Forbidden Dynamic APIs
+### NASA01-forbidden-api: Dynamic APIs
 
 Flags calls to dynamic APIs that make code difficult to analyze:
 
@@ -66,7 +66,7 @@ An assertion that only restates a type, echoes a just-assigned value, or bundles
 
 One example per rule; each block is run through the analyzer by `tests/test_doc_examples.py`, which also fails if a rule has no example.
 
-`NASA01-dynamic-api` — call to a forbidden dynamic API:
+`NASA01-forbidden-api` — call to a forbidden dynamic API:
 
 ```python
 def f():

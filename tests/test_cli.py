@@ -81,7 +81,7 @@ def foo():
 """)
         result = runner.invoke(app, ["lint", str(bad_file)])
         assert result.exit_code == 1
-        assert "NASA01-dynamic-api" in result.stdout
+        assert "NASA01-forbidden-api" in result.stdout
         assert "NASA05" in result.stdout
 
 

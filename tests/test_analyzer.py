@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 # The structural rules only: base-rule tests use illustrative asserts that should not
 # trip the assertion-quality rules (NASA05-message and the NASA05-M family).
-RULES_WITHOUT_ASSERT_MESSAGES = frozenset({"NASA01-dynamic-api", "NASA01-recursion", "NASA02", "NASA04", "NASA05"})
+RULES_WITHOUT_ASSERT_MESSAGES = frozenset({"NASA01-forbidden-api", "NASA01-recursion", "NASA02", "NASA04", "NASA05"})
 
 
 def test_analyze_returns_empty_for_syntax_error() -> None:
@@ -59,7 +59,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "eval" in diagnostics[0].message
     assert isinstance(diagnostics[0], Diagnostic)
 
@@ -73,7 +73,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "exec" in diagnostics[0].message
 
 
@@ -86,7 +86,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "compile" in diagnostics[0].message
 
 
@@ -99,7 +99,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "globals" in diagnostics[0].message
 
 
@@ -112,7 +112,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "locals" in diagnostics[0].message
 
 
@@ -125,7 +125,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "__import__" in diagnostics[0].message
 
 
@@ -138,7 +138,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "setattr" in diagnostics[0].message
 
 
@@ -151,7 +151,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "getattr" in diagnostics[0].message
 
 
@@ -164,7 +164,7 @@ def foo():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     assert len(diagnostics) == 1
-    assert diagnostics[0].code == "NASA01-dynamic-api"
+    assert diagnostics[0].code == "NASA01-forbidden-api"
     assert "eval" in diagnostics[0].message
 
 
@@ -433,7 +433,7 @@ def bad():
 """
     diagnostics, _ = analyze(code, enabled_rules=RULES_WITHOUT_ASSERT_MESSAGES)
     codes = {d.code for d in diagnostics}
-    assert "NASA01-dynamic-api" in codes
+    assert "NASA01-forbidden-api" in codes
     assert "NASA02" in codes
     assert "NASA05" in codes
 
@@ -868,7 +868,7 @@ def f(x, k):
 
 
 def test_rule_severity_maps_documented_levels() -> None:
-    assert rule_severity("NASA01-dynamic-api") == "error"
+    assert rule_severity("NASA01-forbidden-api") == "error"
     assert rule_severity("NASA04") == "warning"
     assert rule_severity("NASA05") == "error"
     assert rule_severity("NASA05-total-op") == "information"

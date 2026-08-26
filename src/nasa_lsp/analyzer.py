@@ -22,7 +22,7 @@ SEVERITY_LEVELS: Final = frozenset({"error", "warning", "information"})
 # The one registry of every rule the linter can emit, with its severity. Adding a
 # rule means adding it here; it is then known, severity-mapped, and on by default.
 RULE_SEVERITY: Final[dict[str, str]] = {
-    "NASA01-dynamic-api": "error",
+    "NASA01-forbidden-api": "error",
     "NASA01-recursion": "error",
     "NASA02": "error",
     "NASA04": "warning",
@@ -246,8 +246,8 @@ class NasaVisitor(ast.NodeVisitor):
             if name in forbidden:
                 self._add_diag(
                     self._range_for_node(target_node),
-                    f"Call to forbidden API '{name}' (NASA01-dynamic-api)",
-                    "NASA01-dynamic-api",
+                    f"Call to forbidden API '{name}' (NASA01-forbidden-api)",
+                    "NASA01-forbidden-api",
                 )
 
         self.generic_visit(node)
