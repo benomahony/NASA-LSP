@@ -5,15 +5,37 @@ import io
 import re
 import tokenize
 import tomllib
-from dataclasses import dataclass
 from itertools import pairwise
 from pathlib import Path
 from typing import Final, cast, override
 
+from nasa_lsp._languages import DEFAULT_LANGUAGE, language_for_path
+from nasa_lsp._types import (
+    MAX_FUNCTION_LINES,
+    MIN_ASSERTS_PER_FUNCTION,
+    Diagnostic,
+    FunctionStat,
+    Position,
+    Range,
+)
+
+__all__ = [
+    "ALL_RULES",
+    "MAX_FUNCTION_LINES",
+    "MIN_ASSERTS_PER_FUNCTION",
+    "RULE_SEVERITY",
+    "Diagnostic",
+    "FunctionStat",
+    "Position",
+    "Range",
+    "analyze",
+    "load_enabled_rules",
+    "load_exclude_patterns",
+    "rule_severity",
+]
+
 IGNORE_COMMENT_PATTERN: Final = r"#\s*nasa:\s*ignore\b(?:\s*\[([^\]]*)\])?"
 
-MAX_FUNCTION_LINES: Final = 60
-MIN_ASSERTS_PER_FUNCTION: Final = 2
 MAX_PARENT_DEPTH: Final = 20
 ISINSTANCE_ARG_COUNT: Final = 2
 CONSTANT_CONSTRUCTORS: Final = frozenset({"dict", "list", "set", "tuple", "frozenset"})
@@ -50,33 +72,6 @@ WEAK_ASSERT_RULES: Final = frozenset(
         "NASA05-isinstance",
     }
 )
-
-
-@dataclass
-class Position:
-    line: int
-    character: int
-
-
-@dataclass
-class Range:
-    start: Position
-    end: Position
-
-
-@dataclass
-class Diagnostic:
-    range: Range
-    message: str
-    code: str
-
-
-@dataclass
-class FunctionStat:
-    name: str
-    line_start: int
-    line_count: int
-    assert_count: int
 
 
 def rule_severity(code: str) -> str:
@@ -531,12 +526,17 @@ def analyze(
 ) -> tuple[list[Diagnostic], list[FunctionStat]]:
     if not text.strip():
         return [], []
+    if enabled_rules is None:
+        enabled_rules = load_enabled_rules(file_path)
+    language = language_for_path(file_path)
+    if language != DEFAULT_LANGUAGE:
+        from nasa_lsp.generic import analyze_generic  # noqa: PLC0415
+
+        return analyze_generic(text, language, enabled_rules)
     try:
         tree = ast.parse(text)
     except SyntaxError:
         return [], []
-    if enabled_rules is None:
-        enabled_rules = load_enabled_rules(file_path)
     visitor = NasaVisitor(text, enabled_rules)
     visitor.visit(tree)
     assert all(d.code for d in visitor.diagnostics), "every reported diagnostic must carry a rule code"
