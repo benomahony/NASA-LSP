@@ -22,22 +22,27 @@ SEVERITY_LEVELS: Final = frozenset({"error", "warning", "information"})
 # The one registry of every rule the linter can emit, with its severity. Adding a
 # rule means adding it here; it is then known, severity-mapped, and on by default.
 RULE_SEVERITY: Final[dict[str, str]] = {
-    "NASA01-A": "error",
-    "NASA01-B": "error",
-    "NASA02": "error",
-    "NASA04": "warning",
-    "NASA05": "error",
-    "NASA05-A": "warning",
-    "NASA05-M1": "warning",
-    "NASA05-M2": "error",
-    "NASA05-M3": "warning",
-    "NASA05-M4": "information",
-    "NASA05-M5": "information",
-    "NASA05-M6": "warning",
+    "no-dynamic-api": "error",
+    "no-recursion": "error",
+    "bounded-loops": "error",
+    "max-function-length": "warning",
+    "assert-density": "error",
+    "assert-message": "warning",
+    "single-condition": "warning",
+    "no-constant-assert": "error",
+    "no-redundant-none": "warning",
+    "no-total-op": "information",
+    "no-guaranteed-len": "information",
+    "no-isinstance": "warning",
 }
 
 # Every rule is enabled; a project disables individual rules via config, never enables.
 ALL_RULES: Final = frozenset(RULE_SEVERITY)
+
+# Rules that flag an assertion as too weak to count toward assert-density.
+WEAK_ASSERT_RULES: Final = frozenset(
+    {"single-condition", "no-constant-assert", "no-redundant-none", "no-total-op", "no-guaranteed-len", "no-isinstance"}
+)
 
 
 @dataclass
@@ -91,7 +96,7 @@ def _read_nasa_table(pyproject: Path) -> dict[str, object]:
     return cast("dict[str, object]", nasa) if isinstance(nasa, dict) else {}
 
 
-def _nearest_nasa_config(start_path: Path | None) -> dict[str, object]:  # nasa: ignore[NASA05]
+def _nearest_nasa_config(start_path: Path | None) -> dict[str, object]:  # nasa: ignore[assert-density]
     """Return the [tool.nasa-lsp] table from the nearest pyproject.toml, or an empty dict."""
     search_dir = Path.cwd() if start_path is None else start_path
     if start_path is not None:
@@ -117,14 +122,14 @@ def _nearest_nasa_config(start_path: Path | None) -> dict[str, object]:  # nasa:
     return {}
 
 
-def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:  # nasa: ignore[NASA05]
+def load_enabled_rules(start_path: Path | None = None) -> frozenset[str]:  # nasa: ignore[assert-density]
     """Return every rule except those disabled via [tool.nasa-lsp].disable in pyproject.toml."""
     raw = _nearest_nasa_config(start_path).get("disable")
     disabled = frozenset(cast("list[str]", raw)) if isinstance(raw, list) else frozenset[str]()
     return ALL_RULES - disabled
 
 
-def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:  # nasa: ignore[NASA05]
+def load_exclude_patterns(start_path: Path | None = None) -> tuple[str, ...]:  # nasa: ignore[assert-density]
     """Return exclude glob patterns from [tool.nasa-lsp].exclude, or an empty tuple."""
     raw = _nearest_nasa_config(start_path).get("exclude")
     return tuple(cast("list[str]", raw)) if isinstance(raw, list) else ()
@@ -234,8 +239,8 @@ class NasaVisitor(ast.NodeVisitor):
             if name in forbidden:
                 self._add_diag(
                     self._range_for_node(target_node),
-                    f"Call to forbidden API '{name}' (NASA01: restricted subset)",
-                    "NASA01-A",
+                    f"Call to forbidden API '{name}' (no-dynamic-api)",
+                    "no-dynamic-api",
                 )
 
         self.generic_visit(node)
@@ -247,8 +252,8 @@ class NasaVisitor(ast.NodeVisitor):
         if isinstance(node.test, ast.Constant) and node.test.value is True:
             self._add_diag(
                 self._range_for_node(node),
-                "Unbounded loop 'while True' (NASA02: loops must be bounded)",
-                "NASA02",
+                "Unbounded loop 'while True' (bounded-loops)",
+                "bounded-loops",
             )
         self.generic_visit(node)
 
@@ -259,8 +264,8 @@ class NasaVisitor(ast.NodeVisitor):
         if node.msg is None:
             self._add_diag(
                 self._range_for_node(node),
-                "Assert statement missing descriptive error message (NASA05: assertions must explain invariant)",
-                "NASA05-A",
+                "Assert statement missing descriptive error message (assert-message)",
+                "assert-message",
             )
         self.generic_visit(node)
 
@@ -286,8 +291,8 @@ class NasaVisitor(ast.NodeVisitor):
                 continue
             self._add_diag(
                 self._range_for_node(stmt),
-                "Assertion checks a type with isinstance(); assert a domain invariant instead (NASA05-M6)",
-                "NASA05-M6",
+                "Assertion checks a type with isinstance(); assert a domain invariant instead (no-isinstance)",
+                "no-isinstance",
             )
 
     def _check_compound_assertion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
@@ -298,8 +303,8 @@ class NasaVisitor(ast.NodeVisitor):
                 continue
             self._add_diag(
                 self._range_for_node(stmt),
-                "Compound assertion uses 'and'/'or'; assert one condition per statement (NASA05-M1)",
-                "NASA05-M1",
+                "Compound assertion uses 'and'/'or'; assert one condition per statement (single-condition)",
+                "single-condition",
             )
 
     @staticmethod
@@ -357,8 +362,10 @@ class NasaVisitor(ast.NodeVisitor):
                     continue
                 target = ast.unparse(prev.targets[0])
                 if self._assert_always_holds(current.test, target, prev.value):
-                    message = f"Assertion always holds: '{target}' was just assigned a constant literal (NASA05-M2)"
-                    self._add_diag(self._range_for_node(current), message, "NASA05-M2")
+                    message = (
+                        f"Assertion always holds: '{target}' was just assigned a constant literal (no-constant-assert)"
+                    )
+                    self._add_diag(self._range_for_node(current), message, "no-constant-assert")
 
     def _check_redundant_none(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         assert node is not None, "Function node must not be None"
@@ -378,8 +385,8 @@ class NasaVisitor(ast.NodeVisitor):
                 subject = ast.unparse(check.left)
                 if len(nxt.args) != ISINSTANCE_ARG_COUNT or subject != ast.unparse(nxt.args[0]):
                     continue
-                message = f"Redundant None check on '{subject}'; the isinstance below already excludes None (NASA05-M3)"
-                self._add_diag(self._range_for_node(prev), message, "NASA05-M3")
+                message = f"Redundant None check on '{subject}'; the isinstance below excludes None (no-redundant-none)"
+                self._add_diag(self._range_for_node(prev), message, "no-redundant-none")
 
     def _check_total_op_truthiness(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         assert node is not None, "Function node must not be None"
@@ -397,8 +404,10 @@ class NasaVisitor(ast.NodeVisitor):
                 test = current.test
                 target = ast.unparse(prev.targets[0])
                 if isinstance(test, (ast.Name, ast.Attribute)) and ast.unparse(test) == target:
-                    message = f"Assertion on total-op result '{target}' rarely fails; confirm the invariant (NASA05-M4)"
-                    self._add_diag(self._range_for_node(current), message, "NASA05-M4")
+                    message = (
+                        f"Assertion on total-op result '{target}' rarely fails; confirm the invariant (no-total-op)"
+                    )
+                    self._add_diag(self._range_for_node(current), message, "no-total-op")
 
     def _check_guaranteed_length(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         assert node is not None, "Function node must not be None"
@@ -421,8 +430,8 @@ class NasaVisitor(ast.NodeVisitor):
                     isinstance(test.ops[0], ast.Gt) and bound.value == -1
                 )
                 if non_negative:
-                    message = f"Post-condition '{target}' is guaranteed by len() and can never fail (NASA05-M5)"
-                    self._add_diag(self._range_for_node(current), message, "NASA05-M5")
+                    message = f"Post-condition '{target}' is guaranteed by len() and can never fail (no-guaranteed-len)"
+                    self._add_diag(self._range_for_node(current), message, "no-guaranteed-len")
 
     def _check_recursion(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         func_name = node.name
@@ -470,21 +479,21 @@ class NasaVisitor(ast.NodeVisitor):
         self._check_redundant_none(node)
         self._check_total_op_truthiness(node)
         self._check_guaranteed_length(node)
-        flagged_lines = {d.range.start.line for d in self.diagnostics[before:] if d.code.startswith("NASA05-M")}
+        flagged_lines = {d.range.start.line for d in self.diagnostics[before:] if d.code in WEAK_ASSERT_RULES}
         meaningful_asserts = max(0, assert_count - len(flagged_lines))
 
         if self._check_recursion(node):
             self._add_diag(
                 func_name_range,
-                f"Recursive call to '{func_name}' (NASA01: no recursion)",
-                "NASA01-B",
+                f"Recursive call to '{func_name}' (no-recursion)",
+                "no-recursion",
             )
 
         if line_count >= MAX_FUNCTION_LINES:
             self._add_diag(
                 func_name_range,
-                f"Function '{func_name}' longer than {MAX_FUNCTION_LINES} lines (NASA04)",
-                "NASA04",
+                f"Function '{func_name}' longer than {MAX_FUNCTION_LINES} lines (max-function-length)",
+                "max-function-length",
             )
 
         if meaningful_asserts < MIN_ASSERTS_PER_FUNCTION:
@@ -492,9 +501,9 @@ class NasaVisitor(ast.NodeVisitor):
                 func_name_range,
                 (
                     f"Function '{func_name}' has only {meaningful_asserts} assert(s) that can fail on a bug; "
-                    f"expected at least {MIN_ASSERTS_PER_FUNCTION} (NASA05)"
+                    f"expected at least {MIN_ASSERTS_PER_FUNCTION} (assert-density)"
                 ),
-                "NASA05",
+                "assert-density",
             )
 
     @override

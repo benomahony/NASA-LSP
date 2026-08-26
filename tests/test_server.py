@@ -43,11 +43,11 @@ def test_to_lsp_diagnostic_preserves_all_fields() -> None:
     diag = Diagnostic(
         range=Range(start=Position(line=99, character=50), end=Position(line=100, character=0)),
         message="Long message with special chars: <>&\"'",
-        code="NASA01-A",
+        code="no-dynamic-api",
     )
     result = to_lsp_diagnostic(diag)
     assert result.message == "Long message with special chars: <>&\"'"
-    assert result.code == "NASA01-A"
+    assert result.code == "no-dynamic-api"
     assert isinstance(result.range, types.Range)
     assert isinstance(result.range.start, types.Position)
     assert isinstance(result.range.end, types.Position)
@@ -143,13 +143,13 @@ def _diag(code: str) -> Diagnostic:
 
 
 def test_to_lsp_diagnostic_maps_error_severity() -> None:
-    assert to_lsp_diagnostic(_diag("NASA05-M2")).severity == types.DiagnosticSeverity.Error
-    assert to_lsp_diagnostic(_diag("NASA05")).severity == types.DiagnosticSeverity.Error
+    assert to_lsp_diagnostic(_diag("no-constant-assert")).severity == types.DiagnosticSeverity.Error
+    assert to_lsp_diagnostic(_diag("assert-density")).severity == types.DiagnosticSeverity.Error
 
 
 def test_to_lsp_diagnostic_maps_information_severity() -> None:
-    assert to_lsp_diagnostic(_diag("NASA05-M4")).severity == types.DiagnosticSeverity.Information
-    assert to_lsp_diagnostic(_diag("NASA05-M5")).severity == types.DiagnosticSeverity.Information
+    assert to_lsp_diagnostic(_diag("no-total-op")).severity == types.DiagnosticSeverity.Information
+    assert to_lsp_diagnostic(_diag("no-guaranteed-len")).severity == types.DiagnosticSeverity.Information
 
 
 def test_to_lsp_diagnostic_defaults_unknown_code_to_warning() -> None:

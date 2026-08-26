@@ -37,7 +37,7 @@ EXCLUDED_DIRS: Final = frozenset(
 )
 
 
-def should_exclude(path: Path) -> bool:  # nasa: ignore[NASA05]
+def should_exclude(path: Path) -> bool:  # nasa: ignore[assert-density]
     return any(part in EXCLUDED_DIRS or part.endswith(".egg-info") for part in path.parts)
 
 
@@ -153,7 +153,7 @@ def stats(
 
 
 @app.command()
-def serve() -> None:  # nasa: ignore[NASA05]
+def serve() -> None:  # nasa: ignore[assert-density]
     """Start the Language Server Protocol server."""
     # Imported lazily so `nasa lint` never loads pygls; enforced by tests/test_architecture.py.
     from nasa_lsp.server import serve as start_server  # noqa: PLC0415

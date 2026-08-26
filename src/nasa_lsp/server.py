@@ -65,5 +65,5 @@ def did_change(ls: LanguageServer, params: types.DidChangeTextDocumentParams) ->
     run_checks(ls, ls.workspace.get_text_document(params.text_document.uri))
 
 
-def serve() -> None:  # nasa: ignore[NASA05]
+def serve() -> None:  # nasa: ignore[assert-density]
     server.start_io()

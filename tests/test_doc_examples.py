@@ -42,18 +42,23 @@ def test_readme_examples(example: CodeExample, eval_example: EvalExample) -> Non
     _ = eval_example.run(example)
 
 
+_SLUG = re.compile(r"[a-z][a-z-]*")
+
+
 def _emitted_rule_codes() -> set[str]:
-    """Every rule code passed to NasaVisitor._add_diag, read from the analyzer source."""
+    """Every rule code passed to NasaVisitor._add_diag (its last argument), read from the source.
+
+    Codes are slug-shaped; the shape filter also skips the mutated string variants
+    (uppercased, ``XX..XX``-wrapped) that mutmut writes into its mutants tree.
+    """
     tree = ast.parse(Path(analyzer.__file__).read_text())
     codes: set[str] = set()
     for node in ast.walk(tree):
-        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)):
+        if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr == "_add_diag"):
             continue
-        if node.func.attr != "_add_diag":
-            continue
-        for arg in (*node.args, *(kw.value for kw in node.keywords)):
-            if isinstance(arg, ast.Constant) and isinstance(arg.value, str) and arg.value.startswith("NASA"):
-                codes.add(arg.value)
+        code = node.args[-1] if node.args else None
+        if isinstance(code, ast.Constant) and isinstance(code.value, str) and _SLUG.fullmatch(code.value):
+            codes.add(code.value)
     assert codes, "expected to find rule codes emitted via _add_diag"
     return codes
 
@@ -63,17 +68,21 @@ def _reference_section() -> str:
     return text.split("## Rule detection reference", 1)[1].split("## Original", 1)[0]
 
 
+# A rule label is a slug in backticks at the start of a line (`no-isinstance` — ...).
+_LABEL = r"(?m)^`([a-z][a-z-]*)`"
+
+
 def _documented_rules() -> set[str]:
-    """Every rule labelled in the reference section (a label starts its line)."""
-    return set(re.findall(r"(?m)^`(NASA[\w-]+)`", _reference_section()))
+    """Every rule labelled in the reference section."""
+    return set(re.findall(_LABEL, _reference_section()))
 
 
 def _doc_rule_examples() -> list[tuple[str, str]]:
-    """(rule_code, source) for each fenced example, paired with its preceding `NASA...` label."""
+    """(rule_code, source) for each fenced example, paired with its preceding label."""
     parts = re.split(r"```python\n(.*?)\n```", _reference_section(), flags=re.DOTALL)
     examples: list[tuple[str, str]] = []
     for preceding, source in zip(parts[0::2], parts[1::2], strict=False):
-        labels = re.findall(r"`(NASA[\w-]+)`", preceding)
+        labels = re.findall(_LABEL, preceding)
         assert labels, "each example block must be preceded by a rule label"
         examples.append((labels[-1], source))
     assert examples, "expected labelled rule examples in the reference section"
