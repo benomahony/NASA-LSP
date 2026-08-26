@@ -2,14 +2,14 @@
 
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
-| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-A (forbidden APIs), NASA01-B (no recursion) |
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
 | **2. Bounded Loops** | ✅ NASA LSP | NASA02 (no `while True`) |
 | **3. No Dynamic Allocation** | ❌ Not implemented | Could detect unbounded `list.append()` in loops |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
 | **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
 | **7. Check Return Values** | ⚠️ Ruff | Use Ruff's `B018` rule |
-| **8. Limited Preprocessor** | ⚠️ Partial | NASA01-A bans `__import__`; use Ruff for imports |
+| **8. Limited Preprocessor** | ⚠️ Partial | NASA01-forbidden-api bans `__import__`; use Ruff for imports |
 | **9. Pointer Restrictions** | - N/A | Not applicable to Python |
 | **10. All Warnings Enabled** | ⚠️ Ruff + Mypy | Use Ruff's `ANN` + static type checker |
 
@@ -17,7 +17,7 @@
 
 ## Rule 1: Simple Control Flow
 
-### NASA01-A: Forbidden Dynamic APIs
+### NASA01-forbidden-api: Dynamic APIs
 
 Flags calls to dynamic APIs that make code difficult to analyze:
 
@@ -28,7 +28,7 @@ Flags calls to dynamic APIs that make code difficult to analyze:
 
 **Rationale:** Simpler control flow translates into stronger capabilities for analysis and often results in improved code clarity.
 
-### NASA01-B: No Recursion
+### NASA01-recursion: No Recursion
 
 Identifies direct recursive function calls where a function calls itself.
 
@@ -60,20 +60,20 @@ Enforces minimum of 2 assert statements per function to detect impossible condit
 
 ### Assertion quality sub-rules
 
-An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. All except `NASA05-A` are opt-in via `[tool.nasa-lsp].rules`.
+An assertion that only restates a type, echoes a just-assigned value, or bundles conditions together cannot fail on a real bug. These sub-rules flag such assertions and subtract them from the `NASA05` count, so weak asserts cannot pad a function to the minimum. Every rule is on by default; disable individual rules with `[tool.nasa-lsp].disable` if needed.
 
 ## Rule detection reference
 
 One example per rule; each block is run through the analyzer by `tests/test_doc_examples.py`, which also fails if a rule has no example.
 
-`NASA01-A` — call to a forbidden dynamic API:
+`NASA01-forbidden-api` — call to a forbidden dynamic API:
 
 ```python
 def f():
     eval("expr")
 ```
 
-`NASA01-B` — a function that calls itself:
+`NASA01-recursion` — a function that calls itself:
 
 ```python
 def f():
@@ -97,21 +97,21 @@ def f():
     return 1
 ```
 
-`NASA05-A` — an assertion with no message:
+`NASA05-message` — an assertion with no message:
 
 ```python
 def f(x):
     assert x > 0
 ```
 
-`NASA05-M1` — an assertion restating a parameter's annotation:
+`NASA05-single-condition` — a compound assertion joined by `and` / `or`:
 
 ```python
-def f(x: int):
-    assert isinstance(x, int), "x must be an int"
+def f(x):
+    assert x > 0 and x < 100, "x must be within range"
 ```
 
-`NASA05-M2` — an assertion on a value that was just assigned a literal:
+`NASA05-constant-assert` — an assertion on a value that was just assigned a literal:
 
 ```python
 def f():
@@ -119,7 +119,7 @@ def f():
     assert x is not None, "x must be set"
 ```
 
-`NASA05-M3` — a `None` check made redundant by a following `isinstance`:
+`NASA05-redundant-none` — a `None` check made redundant by a following `isinstance`:
 
 ```python
 def f(x):
@@ -127,7 +127,7 @@ def f(x):
     assert isinstance(x, int), "x must be an int"
 ```
 
-`NASA05-M4` — a truthiness assertion on a total string operation:
+`NASA05-total-op` — a truthiness assertion on a total string operation:
 
 ```python
 def f(k):
@@ -135,7 +135,7 @@ def f(k):
     assert name, "name must be non-empty"
 ```
 
-`NASA05-M5` — a post-condition already guaranteed by `len()`:
+`NASA05-guaranteed-len` — a post-condition already guaranteed by `len()`:
 
 ```python
 def f(x):
@@ -143,18 +143,11 @@ def f(x):
     assert n >= 0, "length is non-negative"
 ```
 
-`NASA05-M6` — a bare `isinstance()` type check:
+`NASA05-isinstance` — an assertion that checks a type with `isinstance()`:
 
 ```python
 def f(x):
     assert isinstance(x, int), "x must be an int"
-```
-
-`NASA05-M7` — a compound assertion joined by `and`:
-
-```python
-def f(x):
-    assert isinstance(x, int) and x > 0, "x must be a positive int"
 ```
 
 ## Original NASA Power of 10 Rules

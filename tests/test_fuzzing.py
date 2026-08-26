@@ -560,9 +560,9 @@ def long_line():
     [
         ({"num_assertions": 0}, ["NASA05"]),
         ({"num_assertions": 1}, ["NASA05"]),
-        ({"include_forbidden_api": True, "num_assertions": 2}, ["NASA01-A"]),
+        ({"include_forbidden_api": True, "num_assertions": 2}, ["NASA01-forbidden-api"]),
         ({"include_while_true": True, "num_assertions": 2}, ["NASA02"]),
-        ({"include_recursion": True, "num_assertions": 2}, ["NASA01-B"]),
+        ({"include_recursion": True, "num_assertions": 2}, ["NASA01-recursion"]),
         ({"num_statements": 70, "num_assertions": 2}, ["NASA04"]),
     ],
 )

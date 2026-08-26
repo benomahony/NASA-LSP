@@ -67,8 +67,8 @@ Create or edit `.vscode/settings.json`:
 
 The LSP runs automatically on Python files and provides inline diagnostics as you type. Violations appear as warnings with diagnostic codes:
 
-- `NASA01-A`: Use of forbidden dynamic API
-- `NASA01-B`: Direct recursive function call
+- `NASA01-forbidden-api`: Use of forbidden dynamic API
+- `NASA01-recursion`: Direct recursive function call
 - `NASA02`: Unbounded while True loop
 - `NASA04`: Function exceeds 60-line limit
 - `NASA05`: Insufficient assertions in function

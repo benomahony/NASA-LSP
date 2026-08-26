@@ -47,9 +47,9 @@ def test_format_diagnostic_shows_error_severity() -> None:
     diag = Diagnostic(
         range=Range(start=Position(line=0, character=0), end=Position(line=0, character=5)),
         message="never fails",
-        code="NASA05-M2",
+        code="NASA05-constant-assert",
     )
-    assert format_diagnostic(path, diag) == "file.py:1:1: error: NASA05-M2 never fails"
+    assert format_diagnostic(path, diag) == "file.py:1:1: error: NASA05-constant-assert never fails"
 
 
 def test_lint_no_args_lints_cwd() -> None:
@@ -81,7 +81,7 @@ def foo():
 """)
         result = runner.invoke(app, ["lint", str(bad_file)])
         assert result.exit_code == 1
-        assert "NASA01-A" in result.stdout
+        assert "NASA01-forbidden-api" in result.stdout
         assert "NASA05" in result.stdout
 
 

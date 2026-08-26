@@ -27,22 +27,7 @@ package = true
 nasa = "nasa_lsp.cli:app"
 
 [tool.nasa-lsp]
-# Enable/disable specific NASA rules
-rules = [
-  "NASA01-A",  # Forbidden APIs (eval, exec, etc.)
-  "NASA01-B",  # No recursion
-  "NASA02",    # No unbounded loops
-  "NASA04",    # Max function length
-  "NASA05",    # Minimum assertions per function
-  "NASA05-A",  # Assertions must have descriptive messages
-  "NASA05-M1", # Assertion restates a parameter type
-  "NASA05-M2", # Assertion can never fail (just-assigned constant)
-  "NASA05-M3", # None check made redundant by a following isinstance
-  "NASA05-M4", # Truthiness assertion on a total-operation result
-  "NASA05-M5", # Post-condition already guaranteed by len()
-  "NASA05-M6", # Assertion is a simple isinstance() type check
-  "NASA05-M7", # Compound assertion should be split into separate asserts
-]
+# Every rule is on by default; list rule codes under `disable` to turn any off.
 # Paths excluded from linting (test suites use bare pytest asserts)
 exclude = ["tests"]
 

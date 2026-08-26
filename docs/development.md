@@ -2,7 +2,7 @@
 
 ## Requirements
 
-Python 3.13+
+Python 3.12+
 
 ## Setup
 
@@ -10,7 +10,7 @@ Python 3.13+
 git clone https://github.com/benomahony/nasa-lsp
 cd nasa-lsp
 uv sync
-python main.py
+uv run nasa lint
 ```
 
 ## Project Structure
@@ -20,7 +20,9 @@ nasa-lsp/
 ├── src/
 │   └── nasa_lsp/
 │       ├── __init__.py
-│       └── main.py          # LSP server and rule implementations
+│       ├── analyzer.py      # AST analysis and rule implementations
+│       ├── cli.py           # `nasa` command-line entry point
+│       └── server.py        # Language Server Protocol server
 ├── docs/                    # Zensical documentation
 ├── pyproject.toml          # Project configuration
 └── README.md
@@ -38,10 +40,10 @@ The LSP uses Python's `ast` module to parse and analyze code:
 
 To add a new NASA rule:
 
-1. Add a `visit_*` method to the `NasaVisitor` class in `src/nasa_lsp/main.py`
-2. Use AST pattern matching to detect violations
-3. Call `self._add_diag()` to report diagnostics
-4. Update documentation with the new rule code
+1. Register the rule code and its severity in `RULE_SEVERITY` in `src/nasa_lsp/analyzer.py`
+2. Add a `visit_*` or `_check_*` method to the `NasaVisitor` class that detects violations
+3. Call `self._add_diag()` to report diagnostics, passing the rule code
+4. Document the rule with an example in `docs/rules.md`
 
 Example:
 
@@ -53,7 +55,7 @@ def visit_While(self, node: ast.While) -> None:
         assert range
         self._add_diag(
             range,
-            "Unbounded loop 'while True' (NASA02: loops must be bounded)",
+            "Unbounded loop 'while True' (NASA02)",
             "NASA02",
         )
     self.generic_visit(node)
