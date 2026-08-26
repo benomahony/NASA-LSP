@@ -150,7 +150,8 @@ def f(x):
     assert isinstance(x, int), "x must be an int"
 ```
 
-`NASA05-M7` — a compound assertion joined by `and`:
+`NASA05-M7` — an assertion whose test contains a `BoolOp` (`and`/`or`), whether at
+the top level or nested inside a larger expression (e.g. `assert (a and b) == c`):
 
 ```python
 def f(x):

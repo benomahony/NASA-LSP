@@ -364,7 +364,7 @@ class NasaVisitor(ast.NodeVisitor):
         assert node is not None, "Function node must not be None"
         assert node.body is not None, "Function must have a body"
         for stmt in self._iter_function_asserts(node):
-            if not isinstance(stmt.test, ast.BoolOp):
+            if not any(isinstance(sub, ast.BoolOp) for sub in ast.walk(stmt.test)):
                 continue
             self._add_diag(
                 self._range_for_node(stmt),

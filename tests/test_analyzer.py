@@ -766,6 +766,26 @@ def f(i, items):
     assert diagnostics == []
 
 
+def test_nasa05_m7_flags_nested_boolop_in_test() -> None:
+    code = """
+def f(a, b, c):
+    assert (a and b) == c, "combined flag must match c"
+    return c
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M7"]
+
+
+def test_nasa05_m7_flags_boolop_inside_call_argument() -> None:
+    code = """
+def f(x, y):
+    assert bool(x or y), "at least one must be set"
+    return x
+"""
+    diagnostics, _ = analyze(code, enabled_rules=frozenset({"NASA05-M7"}))
+    assert [d.code for d in diagnostics] == ["NASA05-M7"]
+
+
 def test_nasa05_m7_excludes_compound_assertion_from_meaningful_count() -> None:
     code = """
 def f(x, y):
