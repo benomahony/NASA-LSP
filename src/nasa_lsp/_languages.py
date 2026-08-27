@@ -42,9 +42,13 @@ class Language:
             bodies (TypeScript's, for instance, only matches ambient signatures).
             It must capture ``@definition.function``/``@definition.method`` and
             ``@name``, exactly like a tags query.
-        allocation_names: callee names that allocate or free heap memory, banned
-            by NASA03; empty disables the rule for a language whose memory is
-            managed (Python, Go, JavaScript).
+        allocation_names: callee names that allocate heap memory, banned by
+            NASA03. This is allocation only, not deallocation: Rule 3 forbids
+            dynamic allocation, so ``free`` and ``delete`` are not listed. Empty
+            disables the rule for a managed-memory language (Python, Go, JS).
+        allocation_query: a query capturing allocation expressions that are not
+            calls -- C++ ``new`` -- as ``@alloc`` (also NASA03); None if the
+            language allocates only through named functions.
         unbounded_loop_query: a query capturing loops with no fixed bound as
             ``@loop`` (NASA02); None disables the rule for the language.
     """
@@ -57,6 +61,7 @@ class Language:
     tags_lack_calls: bool = False
     function_query: str | None = None
     allocation_names: frozenset[str] = field(default_factory=frozenset)
+    allocation_query: str | None = None
     unbounded_loop_query: str | None = None
 
 
@@ -69,11 +74,17 @@ _TS_FUNCTION_QUERY: Final = (
 
 
 _C_FORBIDDEN: Final = frozenset({"gets", "longjmp", "setjmp"})
-_C_ALLOC: Final = frozenset({"malloc", "calloc", "realloc", "reallocarray", "aligned_alloc", "valloc", "free"})
+# Allocation only -- Rule 3 forbids allocating, so free/delete are not listed.
+_C_ALLOC: Final = frozenset({"malloc", "calloc", "realloc", "reallocarray", "aligned_alloc", "valloc"})
 
 # Unbounded loops: a constant-condition while, or a for with no condition clause.
+# C wraps the while condition in a parenthesized_expression; C++ in a condition_clause.
 _C_LOOP: Final = (
     "[(while_statement condition: (parenthesized_expression [(number_literal) (true)]))"
+    " (for_statement !condition)] @loop"
+)
+_CPP_LOOP: Final = (
+    "[(while_statement condition: (condition_clause value: [(number_literal) (true)]))"
     " (for_statement !condition)] @loop"
 )
 _RUST_LOOP: Final = "[(loop_expression) (while_expression condition: (boolean_literal))] @loop"
@@ -101,7 +112,8 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         forbidden_calls=_C_FORBIDDEN,
         assert_names=frozenset({"assert"}),
         allocation_names=_C_ALLOC,
-        unbounded_loop_query=_C_LOOP,
+        allocation_query="(new_expression) @alloc",
+        unbounded_loop_query=_CPP_LOOP,
     ),
     Language(
         name="rust",

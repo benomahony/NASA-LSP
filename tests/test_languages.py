@@ -124,9 +124,20 @@ def test_javascript_infinite_loops() -> None:
 # --- NASA03 dynamic memory -------------------------------------------------
 
 
-def test_c_flags_heap_allocation_and_free() -> None:
+def test_c_flags_allocation_but_not_deallocation() -> None:
+    # Rule 3 forbids allocating; free is deallocation and is not flagged.
     source = "void s(void){ int* p = malloc(8); free(p); }\n"
-    assert codes(source, ".c").count("NASA03") == 2
+    assert codes(source, ".c").count("NASA03") == 1
+
+
+def test_cpp_flags_new_and_malloc_but_not_delete() -> None:
+    source = "void s(void){ int* p = new int(5); delete p; int* q = malloc(4); free(q); }\n"
+    assert codes(source, ".cpp").count("NASA03") == 2
+
+
+def test_cpp_unbounded_loops() -> None:
+    assert "NASA02" in codes("int s(){ while(1){} }\n", ".cpp")
+    assert "NASA02" not in codes("int s(int n){ while(n > 0){ n--; } }\n", ".cpp")
 
 
 def test_managed_languages_have_no_allocation_rule() -> None:
@@ -154,7 +165,17 @@ def test_disabled_rule_is_not_emitted() -> None:
     assert "NASA01-recursion" not in [d.code for d in diagnostics]
 
 
-@pytest.mark.parametrize("suffix", [".c", ".rs", ".go", ".js", ".ts"])
+@pytest.mark.parametrize("name", sorted(LANGUAGES))
+def test_every_registered_language_compiles_and_analyzes(name: str) -> None:
+    # Analyzing any snippet compiles every query the language registers
+    # (function, call, loop, allocation), so a malformed query fails here.
+    suffix = sorted(LANGUAGES[name].extensions)[0]
+    diagnostics, stats = analyze("int s(void){ return 0; }\n", Path("probe").with_suffix(suffix))
+    assert isinstance(diagnostics, list)
+    assert isinstance(stats, list)
+
+
+@pytest.mark.parametrize("suffix", [".c", ".cpp", ".rs", ".go", ".js", ".ts"])
 def test_stats_are_reported_for_each_language(suffix: str) -> None:
     _, stats = analyze("", Path(f"empty{suffix}"))
     assert stats == []

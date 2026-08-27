@@ -203,7 +203,18 @@ class _Analysis:
             if call.name in forbidden:
                 self.add(_range_of(call.node), f"Call to forbidden API '{call.name}'", "NASA01-forbidden-api")
             if call.name in allocators:
-                self.add(_range_of(call.node), f"Dynamic memory call '{call.name}'", "NASA03")
+                self.add(_range_of(call.node), f"Dynamic memory allocation '{call.name}'", "NASA03")
+
+    def check_allocation_syntax(self, root: Node) -> None:
+        assert root is not None, "root must not be None"
+        assert self.language is not None, "language must be set"
+        query_source = self.language.allocation_query
+        if query_source is None:
+            return
+        query = compile_query(self.language.name, query_source)
+        for captures in run_query(query, root):
+            for node in captures.get("alloc", []):
+                self.add(_range_of(node), "Dynamic memory allocation with 'new'", "NASA03")
 
     def check_loops(self, root: Node) -> None:
         assert root is not None, "root must not be None"
@@ -256,6 +267,7 @@ def analyze_generic(
     calls = _collect_calls(root, spec)
     analysis = _Analysis(spec, enabled_rules)
     analysis.check_calls(calls)
+    analysis.check_allocation_syntax(root)
     analysis.check_loops(root)
     for function in _collect_functions(root, spec):
         analysis.check_function(function, calls)

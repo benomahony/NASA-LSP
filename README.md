@@ -221,7 +221,7 @@ styles that have been advanced for safety-critical systems such as the "design b
 |------|----------|----------------|
 | **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
 | **2. Bounded Loops** | ✅ NASA LSP | NASA02 (`while True`, `while(1)`, `for(;;)`, `loop`) |
-| **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++ heap `malloc`/`free`) |
+| **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++ heap allocation: `malloc`, `new`) |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
 | **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
