@@ -4,7 +4,7 @@
 |------|----------|----------------|
 | **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
 | **2. Bounded Loops** | ✅ NASA LSP | NASA02 (`while True`, `while(1)`, `for(;;)`, `loop`) |
-| **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++ heap allocation: `malloc`, `new`) |
+| **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++/Rust/Zig heap allocation) |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
 | **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
@@ -42,13 +42,19 @@ Detects unbounded `while True` loops that violate the fixed upper bound requirem
 
 **Rationale:** The absence of recursion and the presence of loop bounds prevents runaway code. It must be trivially possible for a checking tool to prove statically that the loop cannot exceed a preset upper bound on the number of iterations.
 
-For non-Python languages the tree-sitter engine flags the equivalent unbounded forms: `while (1)` / `for (;;)` in C and C++, `loop {}` and `while true` in Rust, and `while (true)` / `for (;;)` in JavaScript and TypeScript.
+For non-Python languages the tree-sitter engine flags the equivalent unbounded forms: `while (1)` / `for (;;)` in C and C++, `loop {}` and `while true` in Rust, `while (true)` / `for (;;)` in JavaScript and TypeScript, and `while (true)` in Zig.
 
 ## Rule 3: No Dynamic Memory Allocation
 
 ### NASA03: Dynamic Memory Allocation
 
-Flags heap **allocation** in languages with manual memory management: `malloc`, `calloc`, `realloc`, `reallocarray`, `aligned_alloc`, and `valloc` in C and C++, plus the `new` expression in C++. This is allocation only — the rule forbids *allocating*, so `free` and `delete` (deallocation) are not flagged. Languages with managed memory (Python, Go, JavaScript) have no allocation idiom to flag, so the rule stays silent there.
+Flags heap **allocation** in languages with manual memory management:
+
+- **C / C++:** `malloc`, `calloc`, `realloc`, `reallocarray`, `aligned_alloc`, `valloc`, plus the C++ `new` expression.
+- **Rust:** the heap-allocating constructors `Box::new`, `Vec::new` / `Vec::with_capacity`, `String::from`, `Rc::new`, `Arc::new`, the standard collections, and the `vec!` macro.
+- **Zig:** allocator calls that allocate — `alloc`, `create`, `realloc`, `dupe`.
+
+This is allocation only — the rule forbids *allocating*, so deallocation (`free`, `delete`, Zig's `destroy`/`free`) is not flagged. Languages with managed memory (Python, Go, JavaScript) have no allocation idiom to flag, so the rule stays silent there.
 
 The original rule forbids dynamic allocation *after initialization*, but "after initialization" has no reliable static marker, so the linter flags all dynamic allocation and leaves legitimate one-time setup allocation to be suppressed with a `nasa: ignore[NASA03]` comment.
 

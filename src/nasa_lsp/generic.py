@@ -52,6 +52,21 @@ def _text(node: Node) -> str:
     return node.text.decode("utf-8", "replace") if node.text is not None else ""
 
 
+def _alloc_label(captures: dict[str, list[Node]]) -> str:
+    """A short name for an allocation match: ``vec!``, ``Box::new``, or ``new``."""
+    assert captures is not None, "captures must not be None"
+    assert "alloc" in captures, "an allocation match must capture @alloc"
+    macro = captures.get("macro")
+    if macro:
+        return f"{_text(macro[0])}!"
+    types = captures.get("type")
+    methods = captures.get("method")
+    if types and methods:
+        return f"{_text(types[0])}::{_text(methods[0])}"
+    tokens = _text(captures["alloc"][0]).split()
+    return tokens[0] if tokens else captures["alloc"][0].type
+
+
 def _position(row: int, column: int) -> Position:
     assert row >= 0, "row must be non-negative"
     assert column >= 0, "column must be non-negative"
@@ -121,6 +136,8 @@ def _call_matches(root: Node, language: Language) -> list[dict[str, list[Node]]]
     """Query matches that expose call references for ``language``."""
     assert root is not None, "root must not be None"
     assert language is not None, "language must not be None"
+    if language.call_query is not None:
+        return run_query(compile_query(language.name, language.call_query), root)
     if language.tags_lack_calls:
         return run_query(compile_query(language.name, _CALL_FALLBACK_QUERY), root)
     query = tags_query(language.name)
@@ -213,8 +230,24 @@ class _Analysis:
             return
         query = compile_query(self.language.name, query_source)
         for captures in run_query(query, root):
-            for node in captures.get("alloc", []):
-                self.add(_range_of(node), "Dynamic memory allocation with 'new'", "NASA03")
+            alloc = captures.get("alloc")
+            if alloc and self._is_allocation(captures):
+                self.add(_range_of(alloc[0]), f"Dynamic memory allocation '{_alloc_label(captures)}'", "NASA03")
+
+    def _is_allocation(self, captures: dict[str, list[Node]]) -> bool:
+        assert captures is not None, "captures must not be None"
+        assert "alloc" in captures, "an allocation match captures @alloc"
+        spec = self.language
+        if not spec.allocation_scoped and not spec.allocation_macros:
+            return True  # an unconditional query (C++ new): every match allocates
+        macro = captures.get("macro")
+        if macro and _text(macro[0]) in spec.allocation_macros:
+            return True
+        types = captures.get("type")
+        methods = captures.get("method")
+        if not types or not methods:
+            return False
+        return f"{_text(types[0])}::{_text(methods[0])}" in spec.allocation_scoped
 
     def check_loops(self, root: Node) -> None:
         assert root is not None, "root must not be None"

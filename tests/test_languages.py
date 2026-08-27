@@ -140,9 +140,45 @@ def test_cpp_unbounded_loops() -> None:
     assert "NASA02" not in codes("int s(int n){ while(n > 0){ n--; } }\n", ".cpp")
 
 
-def test_managed_languages_have_no_allocation_rule() -> None:
+def test_rust_flags_heap_allocation_but_not_other_calls() -> None:
+    allocating = 'fn m() { let a = Box::new(5); let b = vec![1, 2]; let c = String::from("x"); }\n'
+    assert codes(allocating, ".rs").count("NASA03") == 3
+    other = "fn m(p: Point) { let x = Foo::bar(); let y = p.clone(); }\n"
+    assert "NASA03" not in codes(other, ".rs")
+
+
+def test_managed_language_has_no_allocation_rule() -> None:
+    # JavaScript is garbage-collected: new Array(...) is not flagged.
     assert "NASA03" not in codes("function s(){ const a = new Array(3); }\n", ".js")
-    assert "NASA03" not in codes("fn s() { let v = Vec::new(); }\n", ".rs")
+
+
+# --- Zig (no bundled tags query; fully custom queries) ---------------------
+
+
+def test_zig_finds_recursion_loop_allocation_and_density() -> None:
+    source = (
+        "fn fac(n: u32) u32 {\n    const p = allocator.create(u32);\n    while (true) {}\n    return fac(n - 1);\n}\n"
+    )
+    result = codes(source, ".zig")
+    assert "NASA01-recursion" in result
+    assert "NASA02" in result
+    assert "NASA03" in result
+    assert "NASA05" in result
+
+
+def test_zig_counts_asserts_and_ignores_deallocation() -> None:
+    source = (
+        "fn ok(n: u32) u32 {\n"
+        "    std.debug.assert(n > 0);\n"
+        "    std.debug.assert(n < 9);\n"
+        "    const p = allocator.create(u32);\n"
+        "    allocator.destroy(p);\n"
+        "    return n;\n"
+        "}\n"
+    )
+    result = codes(source, ".zig")
+    assert "NASA05" not in result
+    assert result.count("NASA03") == 1
 
 
 # --- engine edges ----------------------------------------------------------
@@ -175,7 +211,7 @@ def test_every_registered_language_compiles_and_analyzes(name: str) -> None:
     assert isinstance(stats, list)
 
 
-@pytest.mark.parametrize("suffix", [".c", ".cpp", ".rs", ".go", ".js", ".ts"])
+@pytest.mark.parametrize("suffix", [".c", ".cpp", ".rs", ".go", ".js", ".ts", ".zig"])
 def test_stats_are_reported_for_each_language(suffix: str) -> None:
     _, stats = analyze("", Path(f"empty{suffix}"))
     assert stats == []
