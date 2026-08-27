@@ -67,7 +67,9 @@ def _emitted_rule_codes() -> set[str]:
     """
     codes: set[str] = set()
     for module in (analyzer, generic):
-        tree = ast.parse(Path(module.__file__).read_text())
+        module_file = module.__file__
+        assert module_file is not None, "analyzer modules are loaded from files"
+        tree = ast.parse(Path(module_file).read_text())
         for node in ast.walk(tree):
             if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.args):
                 continue
