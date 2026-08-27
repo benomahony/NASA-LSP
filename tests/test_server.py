@@ -1,13 +1,20 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from lsprotocol import types
 from pygls.lsp.server import LanguageServer
-from pygls.workspace import TextDocument
+from pygls.workspace import TextDocument, Workspace
 
+from nasa_lsp import server as server_module
 from nasa_lsp.analyzer import Diagnostic, Position, Range
-from nasa_lsp.server import run_checks, server, to_lsp_diagnostic
+from nasa_lsp.server import did_change, did_open, run_checks, serve, server, to_lsp_diagnostic
+
+if TYPE_CHECKING:
+    import pytest
 
 CLEAN_CODE_VERSION = 2
+DID_CHANGE_VERSION = 2
 
 
 def test_to_lsp_diagnostic_basic() -> None:
@@ -154,3 +161,64 @@ def test_to_lsp_diagnostic_maps_information_severity() -> None:
 
 def test_to_lsp_diagnostic_defaults_unknown_code_to_warning() -> None:
     assert to_lsp_diagnostic(_diag("SOMETHING-ELSE")).severity == types.DiagnosticSeverity.Warning
+
+
+def _ls_with_document(
+    uri: str,
+    source: str,
+    version: int,
+) -> tuple[LanguageServer, list[types.PublishDiagnosticsParams]]:
+    ls = LanguageServer("test", "0.1")
+    ls.protocol._workspace = Workspace("file:///", types.TextDocumentSyncKind.Full)  # noqa: SLF001
+    ls.protocol._workspace.put_text_document(  # noqa: SLF001
+        types.TextDocumentItem(uri=uri, language_id="python", version=version, text=source),
+    )
+    published: list[types.PublishDiagnosticsParams] = []
+
+    def capture(params: types.PublishDiagnosticsParams) -> None:
+        assert isinstance(params, types.PublishDiagnosticsParams)
+        published.append(params)
+
+    ls.text_document_publish_diagnostics = capture
+    return ls, published
+
+
+def test_did_open_publishes_diagnostics() -> None:
+    ls, published = _ls_with_document("file:///open.py", "def foo(): pass", 1)
+    params = types.DidOpenTextDocumentParams(
+        text_document=types.TextDocumentItem(
+            uri="file:///open.py",
+            language_id="python",
+            version=1,
+            text="def foo(): pass",
+        ),
+    )
+
+    did_open(ls, params)
+
+    assert len(published) == 1
+    assert published[0].uri == "file:///open.py"
+    assert len(published[0].diagnostics) > 0
+
+
+def test_did_change_publishes_diagnostics() -> None:
+    ls, published = _ls_with_document("file:///change.py", "def foo(): pass", DID_CHANGE_VERSION)
+    params = types.DidChangeTextDocumentParams(
+        text_document=types.VersionedTextDocumentIdentifier(uri="file:///change.py", version=DID_CHANGE_VERSION),
+        content_changes=[],
+    )
+
+    did_change(ls, params)
+
+    assert len(published) == 1
+    assert published[0].uri == "file:///change.py"
+    assert len(published[0].diagnostics) > 0
+
+
+def test_serve_starts_io(monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[bool] = []
+    monkeypatch.setattr(server_module.server, "start_io", lambda: calls.append(True))
+
+    serve()
+
+    assert calls == [True]
