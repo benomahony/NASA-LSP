@@ -45,6 +45,7 @@ SEVERITY_LEVELS: Final = frozenset({"error", "warning", "information"})
 # rule means adding it here; it is then known, severity-mapped, and on by default.
 RULE_SEVERITY: Final[dict[str, str]] = {
     "NASA01-forbidden-api": "error",
+    "NASA01-goto": "error",
     "NASA01-recursion": "error",
     "NASA02": "error",
     "NASA03": "error",

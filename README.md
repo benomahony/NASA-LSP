@@ -219,7 +219,7 @@ styles that have been advanced for safety-critical systems such as the "design b
 
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
-| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion, NASA01-goto |
 | **2. Bounded Loops** | ✅ NASA LSP | NASA02 (`while True`, `while(1)`, `for(;;)`, `loop`) |
 | **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++/Rust/Zig heap allocation) |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |

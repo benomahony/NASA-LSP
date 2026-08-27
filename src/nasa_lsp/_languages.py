@@ -63,6 +63,8 @@ class Language:
             allocate -- Rust's ``vec!``.
         unbounded_loop_query: a query capturing loops with no fixed bound as
             ``@loop`` (NASA02); None disables the rule for the language.
+        goto_query: a query capturing goto statements as ``@goto``
+            (NASA01-goto); None for languages without goto.
     """
 
     name: str
@@ -78,6 +80,7 @@ class Language:
     allocation_scoped: frozenset[str] = field(default_factory=frozenset)
     allocation_macros: frozenset[str] = field(default_factory=frozenset)
     unbounded_loop_query: str | None = None
+    goto_query: str | None = None
 
 
 # TypeScript's bundled tags query only matches ambient signatures, so real
@@ -89,6 +92,8 @@ _TS_FUNCTION_QUERY: Final = (
 
 
 _C_FORBIDDEN: Final = frozenset({"gets", "longjmp", "setjmp"})
+# goto is a goto_statement in C, C++, and Go alike.
+_GOTO_QUERY: Final = "(goto_statement) @goto"
 # Allocation only -- Rule 3 forbids allocating, so free/delete are not listed.
 _C_ALLOC: Final = frozenset({"malloc", "calloc", "realloc", "reallocarray", "aligned_alloc", "valloc"})
 
@@ -160,6 +165,7 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         tags_lack_calls=True,
         allocation_names=_C_ALLOC,
         unbounded_loop_query=_C_LOOP,
+        goto_query=_GOTO_QUERY,
     ),
     Language(
         name="cpp",
@@ -170,6 +176,7 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         allocation_names=_C_ALLOC,
         allocation_query="(new_expression) @alloc",
         unbounded_loop_query=_CPP_LOOP,
+        goto_query=_GOTO_QUERY,
     ),
     Language(
         name="rust",
@@ -185,6 +192,7 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         name="go",
         extensions=frozenset({".go"}),
         function_types=frozenset({"function_declaration", "method_declaration"}),
+        goto_query=_GOTO_QUERY,
     ),
     Language(
         name="javascript",

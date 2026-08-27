@@ -100,6 +100,20 @@ def test_typescript_uses_custom_function_query() -> None:
     assert "NASA01-recursion" in result
 
 
+# --- NASA01-goto -----------------------------------------------------------
+
+
+def test_goto_is_flagged_where_the_language_has_it() -> None:
+    assert "NASA01-goto" in codes("void f(void){ goto done; done: return; }\n", ".c")
+    assert "NASA01-goto" in codes("void f(){ goto done; done: return; }\n", ".cpp")
+    assert "NASA01-goto" in codes("package m\nfunc f(){ goto done\ndone:\n\treturn }\n", ".go")
+
+
+def test_goto_rule_is_silent_where_there_is_no_goto() -> None:
+    assert "NASA01-goto" not in codes("fn f() { let x = 1; }\n", ".rs")
+    assert "NASA01-goto" not in codes("function f(){ return 1; }\n", ".js")
+
+
 # --- NASA02 unbounded loops ------------------------------------------------
 
 

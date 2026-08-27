@@ -2,7 +2,7 @@
 
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
-| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion, NASA01-goto |
 | **2. Bounded Loops** | ✅ NASA LSP | NASA02 (`while True`, `while(1)`, `for(;;)`, `loop`) |
 | **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++/Rust/Zig heap allocation) |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
@@ -33,6 +33,12 @@ Flags calls to dynamic APIs that make code difficult to analyze:
 Identifies direct recursive function calls where a function calls itself.
 
 **Rationale:** Banishing recursion results in having an acyclic function call graph, which code analyzers can exploit to prove limits on stack use and boundedness of executions.
+
+### NASA01-goto: No goto
+
+Flags `goto` statements in the languages that have them — C, C++, and Go.
+
+**Rationale:** Rule 1 restricts code to simple, structured control flow. `goto` produces arbitrary jumps that break the acyclic control-flow assumptions analyzers rely on; the same rule bans `setjmp`/`longjmp` (see NASA01-forbidden-api) for the same reason.
 
 ## Rule 2: Bounded Loops
 
@@ -96,6 +102,16 @@ def f():
 ```python
 def f():
     return f()
+```
+
+`NASA01-goto` — a goto statement (C/C++/Go):
+
+```c
+void f(void) {
+    goto done;
+done:
+    return;
+}
 ```
 
 `NASA02` — an unbounded `while True` loop:

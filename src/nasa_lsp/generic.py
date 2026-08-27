@@ -260,6 +260,17 @@ class _Analysis:
             for loop in captures.get("loop", []):
                 self.add(_range_of(loop), "Unbounded loop; loops must have a fixed bound", "NASA02")
 
+    def check_goto(self, root: Node) -> None:
+        assert root is not None, "root must not be None"
+        assert self.language is not None, "language must be set"
+        query_source = self.language.goto_query
+        if query_source is None:
+            return
+        query = compile_query(self.language.name, query_source)
+        for captures in run_query(query, root):
+            for node in captures.get("goto", []):
+                self.add(_range_of(node), "goto breaks structured control flow", "NASA01-goto")
+
     def check_function(self, function: _Function, calls: list[_Call]) -> None:
         assert function is not None, "function must not be None"
         assert calls is not None, "calls must not be None"
@@ -302,6 +313,7 @@ def analyze_generic(
     analysis.check_calls(calls)
     analysis.check_allocation_syntax(root)
     analysis.check_loops(root)
+    analysis.check_goto(root)
     for function in _collect_functions(root, spec):
         analysis.check_function(function, calls)
     return analysis.diagnostics, analysis.stats
