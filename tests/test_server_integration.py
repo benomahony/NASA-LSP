@@ -13,7 +13,7 @@ import select
 import subprocess
 import sys
 from contextlib import contextmanager
-from typing import IO, TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, cast, final
 
 import coverage
 
@@ -41,6 +41,7 @@ def _frame(payload: dict[str, object]) -> bytes:
 _HEADER_SEPARATOR = b"\r\n\r\n"
 
 
+@final
 class _Client:
     def __init__(self, proc: subprocess.Popen[bytes]) -> None:
         assert proc.stdin is not None, "server stdin must be a pipe"
@@ -49,11 +50,11 @@ class _Client:
         # Read from the raw fd with os.read so select() reflects the OS pipe.
         # Reading via the BufferedReader would pre-buffer bytes that select()
         # can no longer see, and the next select() would block forever.
-        self._fd = proc.stdout.fileno()
-        self._buffer = bytearray()
+        self._fd: int = proc.stdout.fileno()
+        self._buffer: bytearray = bytearray()
 
     def send(self, payload: dict[str, object]) -> None:
-        self._stdin.write(_frame(payload))
+        _ = self._stdin.write(_frame(payload))
         self._stdin.flush()
 
     def _fill(self, size: int) -> None:
@@ -80,17 +81,16 @@ class _Client:
         self._fill(length)
         body = bytes(self._buffer[:length])
         self._buffer = bytearray(self._buffer[length:])
-        return json.loads(body)
+        return cast("dict[str, object]", json.loads(body))
 
     def receive_diagnostics(self) -> list[dict[str, object]]:
         for _ in range(MAX_MESSAGES_BEFORE_DIAGNOSTICS):
             message = self.receive()
             if message.get("method") == "textDocument/publishDiagnostics":
-                params = message["params"]
-                assert isinstance(params, dict), "publishDiagnostics params must be an object"
+                params = cast("dict[str, object]", message["params"])
                 diagnostics = params["diagnostics"]
                 assert isinstance(diagnostics, list), "diagnostics must be a list"
-                return diagnostics
+                return cast("list[dict[str, object]]", diagnostics)
         msg = "server never published diagnostics"
         raise AssertionError(msg)
 
@@ -126,7 +126,7 @@ def server_session() -> Iterator[_Client]:
     finally:
         if proc.poll() is None:
             proc.kill()
-            proc.wait(timeout=READ_TIMEOUT_SECONDS)
+            _ = proc.wait(timeout=READ_TIMEOUT_SECONDS)
 
 
 def test_did_open_reports_diagnostics_over_stdio() -> None:
