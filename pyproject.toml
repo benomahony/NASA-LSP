@@ -70,6 +70,9 @@ norecursedirs = ["mutants", ".venv", "dist", "build"]
 [tool.coverage.run]
 source = ["src/nasa_lsp"]
 branch = true
+# parallel + the COVERAGE_PROCESS_START hook let the LSP server subprocess
+# spawned by the integration tests record its own coverage, combined here.
+parallel = true
 omit = ["src/nasa_lsp/__init__.py"]
 
 [tool.coverage.report]

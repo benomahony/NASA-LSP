@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING
 
 from typer.testing import CliRunner
 
-from nasa_lsp import server as server_module
 from nasa_lsp.analyzer import Diagnostic, Position, Range
 from nasa_lsp.cli import (
     EXCLUDED_DIRS,
@@ -16,9 +14,6 @@ from nasa_lsp.cli import (
     matches_exclude,
     should_exclude,
 )
-
-if TYPE_CHECKING:
-    import pytest
 
 runner = CliRunner()
 
@@ -331,15 +326,6 @@ def test_serve_command_imports() -> None:
     result = runner.invoke(app, ["serve", "--help"])
     assert result.exit_code == 0
     assert "Language Server Protocol" in result.stdout
-
-
-def test_serve_command_starts_server(monkeypatch: pytest.MonkeyPatch) -> None:
-    calls: list[bool] = []
-    monkeypatch.setattr(server_module, "serve", lambda: calls.append(True))
-    result = runner.invoke(app, ["serve"])
-
-    assert result.exit_code == 0
-    assert calls == [True]
 
 
 def test_discover_files_skips_excluded_directory_argument(tmp_path: Path) -> None:
