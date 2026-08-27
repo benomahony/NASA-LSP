@@ -42,6 +42,11 @@ class Language:
             bodies (TypeScript's, for instance, only matches ambient signatures).
             It must capture ``@definition.function``/``@definition.method`` and
             ``@name``, exactly like a tags query.
+        allocation_names: callee names that allocate or free heap memory, banned
+            by NASA03; empty disables the rule for a language whose memory is
+            managed (Python, Go, JavaScript).
+        unbounded_loop_query: a query capturing loops with no fixed bound as
+            ``@loop`` (NASA02); None disables the rule for the language.
     """
 
     name: str
@@ -51,6 +56,8 @@ class Language:
     assert_names: frozenset[str] = field(default_factory=frozenset)
     tags_lack_calls: bool = False
     function_query: str | None = None
+    allocation_names: frozenset[str] = field(default_factory=frozenset)
+    unbounded_loop_query: str | None = None
 
 
 # TypeScript's bundled tags query only matches ambient signatures, so real
@@ -62,6 +69,18 @@ _TS_FUNCTION_QUERY: Final = (
 
 
 _C_FORBIDDEN: Final = frozenset({"gets", "longjmp", "setjmp"})
+_C_ALLOC: Final = frozenset({"malloc", "calloc", "realloc", "reallocarray", "aligned_alloc", "valloc", "free"})
+
+# Unbounded loops: a constant-condition while, or a for with no condition clause.
+_C_LOOP: Final = (
+    "[(while_statement condition: (parenthesized_expression [(number_literal) (true)]))"
+    " (for_statement !condition)] @loop"
+)
+_RUST_LOOP: Final = "[(loop_expression) (while_expression condition: (boolean_literal))] @loop"
+_JS_LOOP: Final = (
+    "[(while_statement condition: (parenthesized_expression (true)))"
+    " (for_statement condition: (empty_statement))] @loop"
+)
 
 _LANGUAGES: Final[tuple[Language, ...]] = (
     Language(name="python", extensions=frozenset({".py", ".pyi"}), function_types=frozenset({"function_definition"})),
@@ -72,6 +91,8 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         forbidden_calls=_C_FORBIDDEN,
         assert_names=frozenset({"assert"}),
         tags_lack_calls=True,
+        allocation_names=_C_ALLOC,
+        unbounded_loop_query=_C_LOOP,
     ),
     Language(
         name="cpp",
@@ -79,12 +100,15 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         function_types=frozenset({"function_definition"}),
         forbidden_calls=_C_FORBIDDEN,
         assert_names=frozenset({"assert"}),
+        allocation_names=_C_ALLOC,
+        unbounded_loop_query=_C_LOOP,
     ),
     Language(
         name="rust",
         extensions=frozenset({".rs"}),
         function_types=frozenset({"function_item"}),
         assert_names=frozenset({"assert", "assert_eq", "assert_ne", "debug_assert"}),
+        unbounded_loop_query=_RUST_LOOP,
     ),
     Language(
         name="go",
@@ -95,6 +119,7 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         name="javascript",
         extensions=frozenset({".js", ".mjs", ".cjs", ".jsx"}),
         function_types=frozenset({"function_declaration", "method_definition"}),
+        unbounded_loop_query=_JS_LOOP,
         assert_names=frozenset({"assert"}),
     ),
     Language(
@@ -104,6 +129,7 @@ _LANGUAGES: Final[tuple[Language, ...]] = (
         assert_names=frozenset({"assert"}),
         tags_lack_calls=True,
         function_query=_TS_FUNCTION_QUERY,
+        unbounded_loop_query=_JS_LOOP,
     ),
 )
 

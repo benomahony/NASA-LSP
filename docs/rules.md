@@ -3,8 +3,8 @@
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
 | **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
-| **2. Bounded Loops** | ✅ NASA LSP | NASA02 (no `while True`) |
-| **3. No Dynamic Allocation** | ❌ Not implemented | Could detect unbounded `list.append()` in loops |
+| **2. Bounded Loops** | ✅ NASA LSP | NASA02 (`while True`, `while(1)`, `for(;;)`, `loop`) |
+| **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++ heap `malloc`/`free`) |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
 | **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
@@ -41,6 +41,16 @@ Identifies direct recursive function calls where a function calls itself.
 Detects unbounded `while True` loops that violate the fixed upper bound requirement.
 
 **Rationale:** The absence of recursion and the presence of loop bounds prevents runaway code. It must be trivially possible for a checking tool to prove statically that the loop cannot exceed a preset upper bound on the number of iterations.
+
+For non-Python languages the tree-sitter engine flags the equivalent unbounded forms: `while (1)` / `for (;;)` in C and C++, `loop {}` and `while true` in Rust, and `while (true)` / `for (;;)` in JavaScript and TypeScript.
+
+## Rule 3: No Dynamic Memory Allocation
+
+### NASA03: Dynamic Memory
+
+Flags calls that allocate or free heap memory in languages with manual memory management -- `malloc`, `calloc`, `realloc`, `aligned_alloc`, `valloc`, and `free` in C and C++. Languages with managed memory (Python, Go, JavaScript) have no allocation idiom to flag, so the rule stays silent there.
+
+**Rationale:** Memory allocators such as `malloc` and garbage collectors often have unpredictable behavior that can significantly impact performance. A notable class of coding errors also stems from mishandling memory allocation and free routines; forbidding allocation after initialization makes those errors impossible to introduce.
 
 ## Rule 4: Function Length Limit
 
@@ -86,6 +96,14 @@ def f():
 def f():
     while True:
         pass
+```
+
+`NASA03` — a call that allocates or frees heap memory, in a language with manual memory management (C/C++):
+
+```c
+int *grab(int n) {
+    return malloc(n);
+}
 ```
 
 `NASA04` — a function whose body spans more than 60 lines (no example: the trigger is length alone).

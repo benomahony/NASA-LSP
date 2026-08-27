@@ -100,6 +100,40 @@ def test_typescript_uses_custom_function_query() -> None:
     assert "NASA01-recursion" in result
 
 
+# --- NASA02 unbounded loops ------------------------------------------------
+
+
+def test_c_flags_unbounded_loops_but_not_bounded_ones() -> None:
+    unbounded = "void s(void){ while(1){} for(;;){} }\n"
+    assert codes(unbounded, ".c").count("NASA02") == 2
+    bounded = "void s(int n){ for(int i = 0; i < n; i++){} while(n > 0){ n--; } }\n"
+    assert "NASA02" not in codes(bounded, ".c")
+
+
+def test_rust_loop_and_while_true_are_unbounded() -> None:
+    assert codes("fn s() { loop {} }\n", ".rs").count("NASA02") == 1
+    assert "NASA02" in codes("fn s() { while true {} }\n", ".rs")
+    assert "NASA02" not in codes("fn s(n: i32) { while n > 0 {} }\n", ".rs")
+
+
+def test_javascript_infinite_loops() -> None:
+    assert "NASA02" in codes("function s(){ while(true){} }\n", ".js")
+    assert "NASA02" in codes("function s(){ for(;;){} }\n", ".js")
+
+
+# --- NASA03 dynamic memory -------------------------------------------------
+
+
+def test_c_flags_heap_allocation_and_free() -> None:
+    source = "void s(void){ int* p = malloc(8); free(p); }\n"
+    assert codes(source, ".c").count("NASA03") == 2
+
+
+def test_managed_languages_have_no_allocation_rule() -> None:
+    assert "NASA03" not in codes("function s(){ const a = new Array(3); }\n", ".js")
+    assert "NASA03" not in codes("fn s() { let v = Vec::new(); }\n", ".rs")
+
+
 # --- engine edges ----------------------------------------------------------
 
 

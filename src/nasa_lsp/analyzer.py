@@ -47,6 +47,7 @@ RULE_SEVERITY: Final[dict[str, str]] = {
     "NASA01-forbidden-api": "error",
     "NASA01-recursion": "error",
     "NASA02": "error",
+    "NASA03": "error",
     "NASA04": "warning",
     "NASA05": "error",
     "NASA05-message": "warning",
