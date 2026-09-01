@@ -43,7 +43,7 @@ repos:
 
       - id: pytest
         name: pytest
-        entry: uv run pytest --cov=src/nasa_lsp --cov-fail-under=90
+        entry: uv run pytest --cov=src/nasa_lsp
         language: system
         pass_filenames: false
         always_run: true

@@ -328,6 +328,14 @@ def test_serve_command_imports() -> None:
     assert "Language Server Protocol" in result.stdout
 
 
+def test_discover_files_skips_excluded_directory_argument(tmp_path: Path) -> None:
+    build_dir = tmp_path / "build"
+    build_dir.mkdir()
+    _ = (build_dir / "generated.py").write_text("x = 1\n")
+
+    assert discover_files([build_dir], ()) == []
+
+
 def test_matches_exclude_by_segment() -> None:
     assert matches_exclude(Path("proj/tests/test_x.py"), ("tests",)) is True
     assert matches_exclude(Path("proj/src/x.py"), ("tests",)) is False

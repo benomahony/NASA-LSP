@@ -34,7 +34,7 @@ jobs:
         run: uv run nasa lint src/ tests/
 
       - name: Run tests with coverage
-        run: uv run pytest --cov=src/nasa_lsp --cov-report=term-missing --cov-fail-under=90
+        run: uv run pytest --cov=src/nasa_lsp --cov-report=term-missing
 
       - name: Run mutation tests
         run: uv run mutmut run

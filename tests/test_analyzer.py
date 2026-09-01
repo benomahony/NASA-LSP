@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from nasa_lsp.analyzer import (
@@ -14,7 +15,7 @@ from nasa_lsp.analyzer import (
 )
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    import pytest
 
 # The structural rules only: base-rule tests use illustrative asserts that should not
 # trip the assertion-quality rules (NASA05-message and the other NASA05-* rules).
@@ -902,3 +903,29 @@ def test_load_enabled_rules_disables_listed_rules(tmp_path: Path) -> None:
     assert "NASA04" not in rules
     assert "NASA05-total-op" not in rules
     assert rules == ALL_RULES - {"NASA04", "NASA05-total-op"}
+
+
+def test_load_config_ignores_malformed_toml(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text("this = is = not valid toml [[[\n")
+    assert load_exclude_patterns(tmp_path) == ()
+    assert load_enabled_rules(tmp_path) == ALL_RULES
+
+
+def test_load_config_ignores_non_table_tool_key(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text('tool = "not-a-table"\n')
+    assert load_exclude_patterns(tmp_path) == ()
+    assert load_enabled_rules(tmp_path) == ALL_RULES
+
+
+def test_load_config_ignores_non_table_nasa_key(tmp_path: Path) -> None:
+    _ = (tmp_path / "pyproject.toml").write_text('[tool]\nnasa-lsp = "not-a-table"\n')
+    assert load_exclude_patterns(tmp_path) == ()
+
+
+def test_load_config_handles_unresolvable_start_path(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def _raise(_self: Path, *_args: object, **_kwargs: object) -> Path:
+        raise OSError
+
+    monkeypatch.setattr(Path, "resolve", _raise)
+    assert load_exclude_patterns(tmp_path) == ()
+    assert load_enabled_rules(tmp_path) == ALL_RULES
