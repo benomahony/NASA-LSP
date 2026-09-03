@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from nasa_lsp._languages import SUPPORTED_EXTENSIONS
 from nasa_lsp.analyzer import (
     MAX_FUNCTION_LINES,
     MIN_ASSERTS_PER_FUNCTION,
@@ -49,15 +50,23 @@ def matches_exclude(path: Path, patterns: tuple[str, ...]) -> bool:
     return any(pat in segments or fnmatch(posix, pat) or fnmatch(path.name, pat) for pat in patterns)
 
 
+def _is_lintable(path: Path, exclude: tuple[str, ...]) -> bool:
+    assert path is not None, "path must not be None"
+    assert exclude is not None, "exclude patterns must not be None"
+    if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+        return False
+    return not should_exclude(path) and not matches_exclude(path, exclude)
+
+
 def discover_files(paths: list[Path], exclude: tuple[str, ...]) -> list[Path]:
     assert paths is not None, "paths must not be None"
     assert exclude is not None, "exclude patterns must not be None"
     files: list[Path] = []
     for p in paths:
-        if p.is_file() and p.suffix == ".py" and not should_exclude(p) and not matches_exclude(p, exclude):
+        if p.is_file() and _is_lintable(p, exclude):
             files.append(p)
         elif p.is_dir() and not should_exclude(p):
-            files.extend(f for f in p.rglob("*.py") if not should_exclude(f) and not matches_exclude(f, exclude))
+            files.extend(f for f in p.rglob("*") if f.is_file() and _is_lintable(f, exclude))
     return sorted(files)
 
 

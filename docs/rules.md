@@ -2,9 +2,9 @@
 
 | Rule | Coverage | Implementation |
 |------|----------|----------------|
-| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion |
-| **2. Bounded Loops** | ✅ NASA LSP | NASA02 (no `while True`) |
-| **3. No Dynamic Allocation** | ❌ Not implemented | Could detect unbounded `list.append()` in loops |
+| **1. Simple Control Flow** | ✅ NASA LSP | NASA01-forbidden-api, NASA01-recursion, NASA01-goto |
+| **2. Bounded Loops** | ✅ NASA LSP | NASA02 (`while True`, `while(1)`, `for(;;)`, `loop`) |
+| **3. No Dynamic Allocation** | ✅ NASA LSP | NASA03 (C/C++/Rust/Zig heap allocation) |
 | **4. Function Length ≤60 lines** | ✅ NASA LSP | NASA04 |
 | **5. Assertion Density** | ✅ NASA LSP | NASA05 (≥2 asserts per function) |
 | **6. Smallest Scope** | ⚠️ Partial | Python scoping + [Ruff](https://docs.astral.sh/ruff/) best practices |
@@ -34,6 +34,12 @@ Identifies direct recursive function calls where a function calls itself.
 
 **Rationale:** Banishing recursion results in having an acyclic function call graph, which code analyzers can exploit to prove limits on stack use and boundedness of executions.
 
+### NASA01-goto: No goto
+
+Flags `goto` statements in the languages that have them — C, C++, and Go.
+
+**Rationale:** Rule 1 restricts code to simple, structured control flow. `goto` produces arbitrary jumps that break the acyclic control-flow assumptions analyzers rely on; the same rule bans `setjmp`/`longjmp` (see NASA01-forbidden-api) for the same reason.
+
 ## Rule 2: Bounded Loops
 
 ### NASA02: Unbounded Loops
@@ -41,6 +47,24 @@ Identifies direct recursive function calls where a function calls itself.
 Detects unbounded `while True` loops that violate the fixed upper bound requirement.
 
 **Rationale:** The absence of recursion and the presence of loop bounds prevents runaway code. It must be trivially possible for a checking tool to prove statically that the loop cannot exceed a preset upper bound on the number of iterations.
+
+For non-Python languages the tree-sitter engine flags the equivalent unbounded forms: `while (1)` / `for (;;)` in C and C++, `loop {}` and `while true` in Rust, `while (true)` / `for (;;)` in JavaScript and TypeScript, and `while (true)` in Zig.
+
+## Rule 3: No Dynamic Memory Allocation
+
+### NASA03: Dynamic Memory Allocation
+
+Flags heap **allocation** in languages with manual memory management:
+
+- **C / C++:** `malloc`, `calloc`, `realloc`, `reallocarray`, `aligned_alloc`, `valloc`, plus the C++ `new` expression.
+- **Rust:** the heap-allocating constructors `Box::new`, `Vec::new` / `Vec::with_capacity`, `String::from`, `Rc::new`, `Arc::new`, the standard collections, and the `vec!` macro.
+- **Zig:** allocator calls that allocate — `alloc`, `create`, `realloc`, `dupe`.
+
+This is allocation only — the rule forbids *allocating*, so deallocation (`free`, `delete`, Zig's `destroy`/`free`) is not flagged. Languages with managed memory (Python, Go, JavaScript) have no allocation idiom to flag, so the rule stays silent there.
+
+The original rule forbids dynamic allocation *after initialization*, but "after initialization" has no reliable static marker, so the linter flags all dynamic allocation and leaves legitimate one-time setup allocation to be suppressed with a `nasa: ignore[NASA03]` comment.
+
+**Rationale:** Memory allocators such as `malloc` and garbage collectors often have unpredictable behavior that can significantly impact performance. A notable class of coding errors also stems from mishandling memory allocation and free routines; forbidding allocation after initialization makes those errors impossible to introduce.
 
 ## Rule 4: Function Length Limit
 
@@ -80,12 +104,30 @@ def f():
     return f()
 ```
 
+`NASA01-goto` — a goto statement (C/C++/Go):
+
+```c
+void f(void) {
+    goto done;
+done:
+    return;
+}
+```
+
 `NASA02` — an unbounded `while True` loop:
 
 ```python
 def f():
     while True:
         pass
+```
+
+`NASA03` — a call that allocates heap memory, in a language with manual memory management (C/C++):
+
+```c
+int *grab(int n) {
+    return malloc(n);
+}
 ```
 
 `NASA04` — a function whose body spans more than 60 lines (no example: the trigger is length alone).
